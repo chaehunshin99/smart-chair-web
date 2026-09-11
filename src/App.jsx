@@ -25,8 +25,8 @@ function App() {
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  // 1. 일별 지난 기록 (원본 유지)
-  const [historyScores] = useState([
+  // 1. [수정] 일별 지난 기록: 라즈베리파이 DB 데이터를 반영할 수 있도록 setHistoryScores 추가
+  const [historyScores, setHistoryScores] = useState([
     { date: '2026년 9월 7일', score: 88, sitTime: '5시간 40분' },
     { date: '2026년 9월 6일', score: 74, sitTime: '6시간 10분' },
     { date: '2026년 9월 5일', score: 92, sitTime: '4시간 50분' },
@@ -34,8 +34,8 @@ function App() {
     { date: '2026년 9월 3일', score: 85, sitTime: '5시간 15분' },
   ]);
 
-  // 2. 월별 평균 점수 및 위험도 (원본 유지)
-  const [monthlyScores] = useState([
+  // 2. [수정] 월별 평균 점수: 라즈베리파이 DB 데이터를 반영할 수 있도록 setMonthlyScores 추가
+  const [monthlyScores, setMonthlyScores] = useState([
     { month: '2026년 8월', score: 86, avgSitTime: '5시간 30분' },
     { month: '2026년 7월', score: 78, avgSitTime: '6시간 15분' },
     { month: '2026년 6월', score: 82, avgSitTime: '5시간 50분' },
@@ -53,7 +53,7 @@ function App() {
     slouch: 10,
   });
 
-  // 오늘 날짜 갱신
+  // 오늘 날짜 갱신 (원본 유지)
   useEffect(() => {
     const updateDate = () => {
       const now = new Date();
@@ -71,7 +71,7 @@ function App() {
     return () => clearInterval(dateTimer);
   }, []);
 
-  // 주소 정규화 및 저장 핸들러 (https:// 자동 부착 및 끝자리 슬래시 제거)
+  // 주소 정규화 및 저장 핸들러 (원본 유지)
   const handleSaveUrl = (e) => {
     e.preventDefault();
     let clean = inputUrl.trim();
@@ -88,7 +88,7 @@ function App() {
     setIsUrlModalOpen(false);
   };
 
-  // 실시간 백엔드 통신 & 미연결 시 자동 시뮬레이션 Fallback
+  // 실시간 백엔드 통신 & 미연결 시 자동 시뮬레이션 Fallback (원본 유지)
   useEffect(() => {
     const keys = Object.keys(POSTURE_TYPES);
 
@@ -129,7 +129,38 @@ function App() {
     return () => clearInterval(dataTimer);
   }, [serverUrl]);
 
-  // 통계 계산 (원본 로직 유지)
+  // [추가된 부분] 라즈베리파이 DB에서 일별 기록 및 월별 평균 데이터 가져오기
+  useEffect(() => {
+    if (!serverUrl) return;
+
+    // 1. 일별 지난 자세점수 불러오기 (/api/history)
+    fetch(`${serverUrl}/api/history`)
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setHistoryScores(data);
+        }
+      })
+      .catch(() => {});
+
+    // 2. 월별 평균 점수 불러오기 (/api/monthly)
+    fetch(`${serverUrl}/api/monthly`)
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setMonthlyScores(data);
+        }
+      })
+      .catch(() => {});
+  }, [serverUrl, activeModal]); // 도메인이 등록되거나 모달 창을 열 때 자동 갱신
+
+  // 통계 계산 (원본 유지)
   const totalSeconds = Object.values(postureSeconds).reduce((a, b) => a + b, 0);
 
   const postureStats = Object.keys(POSTURE_TYPES).map((key) => {
@@ -173,7 +204,7 @@ function App() {
     return { label: '위험', class: 'risk-danger' };
   };
 
-  // 주소 축약 표시 함수
+  // 주소 축약 표시 함수 (원본 유지)
   const getDisplayUrl = (url) => {
     if (!url) return '';
     return url.replace(/^https?:\/\//, '');
@@ -300,7 +331,7 @@ function App() {
         </div>
       )}
 
-      {/* 5. 일별 지난 자세점수 모달 (원본 유지) */}
+      {/* 5. 일별 지난 자세점수 모달 */}
       {activeModal === 'daily' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -334,7 +365,7 @@ function App() {
         </div>
       )}
 
-      {/* 6. 월별 평균 점수 모달 (원본 유지) */}
+      {/* 6. 월별 평균 점수 모달 */}
       {activeModal === 'monthly' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -372,6 +403,9 @@ function App() {
       )}
     </div>
   );
+}
+
+export default App;
 }
 
 export default App;
