@@ -1,411 +1,204 @@
 import React, { useState, useEffect } from 'react';
-import './App.css';
 
-// 5가지 자세 정의 (원본 유지)
-const POSTURE_TYPES = {
-  good: { name: '바른 자세', color: '#10b981' },
-  left: { name: '좌측 쏠림 (다리 꼬기)', color: '#f59e0b' },
-  right: { name: '우측 쏠림 (다리 꼬기)', color: '#6366f1' },
-  forward: { name: '거북목 / 상체 숙임', color: '#ef4444' },
-  slouch: { name: '뒤로 눕기 (슬라우칭)', color: '#8b5cf6' },
-};
-
-function App() {
-  const [todayDate, setTodayDate] = useState('');
-  const [currentPosture, setCurrentPosture] = useState('good');
-  
-  // 모달 상태 ('daily': 일별 기록, 'monthly': 월별 평균, null: 닫힘)
-  const [activeModal, setActiveModal] = useState(null);
-
-  // Cloudflare Tunnel 주소 관리 (HTTPS 호환 및 localStorage 자동 저장)
-  const [serverUrl, setServerUrl] = useState(() => 
-    localStorage.getItem('chair_server_url') || localStorage.getItem('chair_pi_ip') || ''
+export default function SmartChairApp() {
+  const [domain, setDomain] = useState(
+    localStorage.getItem('chair_domain') || 'https://api.smart-chair-web.site'
   );
-  const [inputUrl, setInputUrl] = useState('');
-  const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [isEditingDomain, setIsEditingDomain] = useState(false);
+  const [inputDomain, setInputDomain] = useState(domain);
+
   const [isConnected, setIsConnected] = useState(false);
-
-  // 1. [수정] 일별 지난 기록: 라즈베리파이 DB 데이터를 반영할 수 있도록 setHistoryScores 추가
-  const [historyScores, setHistoryScores] = useState([
-    { date: '2026년 9월 7일', score: 88, sitTime: '5시간 40분' },
-    { date: '2026년 9월 6일', score: 74, sitTime: '6시간 10분' },
-    { date: '2026년 9월 5일', score: 92, sitTime: '4시간 50분' },
-    { date: '2026년 9월 4일', score: 68, sitTime: '7시간 05분' },
-    { date: '2026년 9월 3일', score: 85, sitTime: '5시간 15분' },
-  ]);
-
-  // 2. [수정] 월별 평균 점수: 라즈베리파이 DB 데이터를 반영할 수 있도록 setMonthlyScores 추가
-  const [monthlyScores, setMonthlyScores] = useState([
-    { month: '2026년 8월', score: 86, avgSitTime: '5시간 30분' },
-    { month: '2026년 7월', score: 78, avgSitTime: '6시간 15분' },
-    { month: '2026년 6월', score: 82, avgSitTime: '5시간 50분' },
-    { month: '2026년 5월', score: 64, avgSitTime: '7시간 10분' },
-    { month: '2026년 4월', score: 72, avgSitTime: '6시간 05분' },
-    { month: '2026년 3월', score: 91, avgSitTime: '4시간 40분' },
-  ]);
-
-  // 오늘 누적된 각 자세별 시간 (초 단위 - 원본 유지)
-  const [postureSeconds, setPostureSeconds] = useState({
-    good: 180,
-    left: 20,
-    right: 15,
-    forward: 25,
-    slouch: 10,
+  const [chairData, setChairData] = useState({
+    is_seated: false,
+    posture_status: '자리 비움',
+    posture_score: 0,
+    tilt_warning: false,
+    sensors: [0, 0, 0, 0, 0, 0, 0, 0, 0]
   });
 
-  // 오늘 날짜 갱신 (원본 유지)
-  useEffect(() => {
-    const updateDate = () => {
-      const now = new Date();
-      const formatted = now.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long',
-      });
-      setTodayDate(formatted);
-    };
+  const [sittingSeconds, setSittingSeconds] = useState(0);
+  
+  // 모달(팝업창) 상태 관리
+  const [activeModal, setActiveModal] = useState(null); // 'calibrate', 'daily', 'monthly'
+  const [calibStep, setCalibStep] = useState(0);
 
-    updateDate();
-    const dateTimer = setInterval(updateDate, 60000);
-    return () => clearInterval(dateTimer);
-  }, []);
-
-  // 주소 정규화 및 저장 핸들러 (원본 유지)
-  const handleSaveUrl = (e) => {
-    e.preventDefault();
-    let clean = inputUrl.trim();
-    if (clean) {
-      if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
-        clean = `https://${clean}`;
-      }
-      if (clean.endsWith('/')) {
-        clean = clean.slice(0, -1);
-      }
-    }
-    localStorage.setItem('chair_server_url', clean);
-    setServerUrl(clean);
-    setIsUrlModalOpen(false);
+  const saveDomain = () => {
+    let cleanDomain = inputDomain.trim();
+    if (cleanDomain.endsWith('/')) cleanDomain = cleanDomain.slice(0, -1);
+    if (!cleanDomain.startsWith('http')) cleanDomain = 'https://' + cleanDomain;
+    
+    setDomain(cleanDomain);
+    localStorage.setItem('chair_domain', cleanDomain);
+    setIsEditingDomain(false);
   };
 
-  // 실시간 백엔드 통신 & 미연결 시 자동 시뮬레이션 Fallback (원본 유지)
   useEffect(() => {
-    const keys = Object.keys(POSTURE_TYPES);
-
-    const dataTimer = setInterval(async () => {
-      // 1) 주소가 설정된 경우: Cloudflare Tunnel을 통한 라즈베리파이 API 통신
-      if (serverUrl) {
-        try {
-          const response = await fetch(`${serverUrl}/api/live-status`, { 
-            signal: AbortSignal.timeout(900) 
-          });
-          if (response.ok) {
-            const data = await response.json();
-            if (data.currentPosture) setCurrentPosture(data.currentPosture);
-            if (data.postureSeconds) setPostureSeconds(data.postureSeconds);
-            setIsConnected(true);
-            return;
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`${domain}/api/live-status`, { headers: { 'Accept': 'application/json' } });
+        if (res.ok) {
+          const data = await res.json();
+          setChairData(data);
+          setIsConnected(true);
+          if (data.is_seated || data.isSeated) {
+            setSittingSeconds(prev => prev + 1);
           }
-        } catch {
+        } else {
           setIsConnected(false);
-          // 통신 실패 시 아래 시뮬레이션 로직으로 자동 전환
         }
+      } catch (err) {
+        setIsConnected(false);
       }
-
-      // 2) 주소가 없거나 통신 실패 시: 가상 시뮬레이션 동작
-      const isGood = Math.random() < 0.7;
-      const detected = isGood
-        ? 'good'
-        : keys[Math.floor(Math.random() * keys.length)];
-
-      setCurrentPosture(detected);
-
-      setPostureSeconds((prev) => ({
-        ...prev,
-        [detected]: prev[detected] + 1,
-      }));
-    }, 1000);
-
-    return () => clearInterval(dataTimer);
-  }, [serverUrl]);
-
-  // [추가된 부분] 라즈베리파이 DB에서 일별 기록 및 월별 평균 데이터 가져오기
-  useEffect(() => {
-    if (!serverUrl) return;
-
-    // 1. 일별 지난 자세점수 불러오기 (/api/history)
-    fetch(`${serverUrl}/api/history`)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setHistoryScores(data);
-        }
-      })
-      .catch(() => {});
-
-    // 2. 월별 평균 점수 불러오기 (/api/monthly)
-    fetch(`${serverUrl}/api/monthly`)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setMonthlyScores(data);
-        }
-      })
-      .catch(() => {});
-  }, [serverUrl, activeModal]); // 도메인이 등록되거나 모달 창을 열 때 자동 갱신
-
-  // 통계 계산 (원본 유지)
-  const totalSeconds = Object.values(postureSeconds).reduce((a, b) => a + b, 0);
-
-  const postureStats = Object.keys(POSTURE_TYPES).map((key) => {
-    const sec = postureSeconds[key];
-    const percentage = totalSeconds > 0 ? (sec / totalSeconds) * 100 : 0;
-    return {
-      key,
-      ...POSTURE_TYPES[key],
-      seconds: sec,
-      percentage: percentage,
     };
-  });
-
-  const healthScore = totalSeconds > 0
-    ? Math.round((postureSeconds.good / totalSeconds) * 100)
-    : 100;
-
-  // 도넛 차트 계산 (원본 유지)
-  let cumulativePercent = 0;
-  const gradientParts = postureStats.map((stat) => {
-    const start = cumulativePercent;
-    cumulativePercent += stat.percentage;
-    return `${stat.color} ${start}% ${cumulativePercent}%`;
-  });
-  const donutChartStyle = {
-    background: `conic-gradient(${gradientParts.join(', ')})`,
-  };
+    fetchData();
+    const timer = setInterval(fetchData, 1000);
+    return () => clearInterval(timer);
+  }, [domain]);
 
   const formatTime = (totalSec) => {
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    if (h > 0) return `${h}시간 ${m}분`;
-    if (m > 0) return `${m}분 ${s}초`;
-    return `${s}초`;
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${min}분 ${sec}초`;
   };
 
-  const getRiskInfo = (score) => {
-    if (score >= 80) return { label: '안전', class: 'risk-safe' };
-    if (score >= 70) return { label: '주의', class: 'risk-warning' };
-    return { label: '위험', class: 'risk-danger' };
-  };
-
-  // 주소 축약 표시 함수 (원본 유지)
-  const getDisplayUrl = (url) => {
-    if (!url) return '';
-    return url.replace(/^https?:\/\//, '');
+  // 측정(캘리브레이션) 시뮬레이션
+  const handleCalibrate = () => {
+    if (calibStep >= 3) {
+      setActiveModal(null);
+      setCalibStep(0);
+      alert('바른 자세 기준값이 성공적으로 저장되었습니다!');
+      return;
+    }
+    setCalibStep(prev => prev + 1);
   };
 
   return (
-    <div className="dashboard">
-      {/* 1. 상단 헤더 */}
-      <header className="header-card">
-        <div className="header-left">
-          <div className="status-indicators">
-            <span className="live-dot">● 모니터링 활성</span>
-            {serverUrl && (
-              <span className={`connection-badge ${isConnected ? 'online' : 'offline'}`}>
-                {isConnected ? `연결됨 (${getDisplayUrl(serverUrl)})` : `연결 대기중 (${getDisplayUrl(serverUrl)})`}
-              </span>
-            )}
-          </div>
-          <h2 className="date-title">{todayDate}</h2>
-          <p className="sub-info">오늘 총 착석 시간: <strong>{formatTime(totalSeconds)}</strong></p>
-        </div>
-
-        <div className="header-right">
-          <div className="score-badge">
-            <div className="score-label">실시간 자세 점수</div>
-            <div className="score-number">{healthScore}<span className="score-unit">점</span></div>
-          </div>
-          
-          <div className="button-group">
-            <button className="ip-btn" onClick={() => { setInputUrl(serverUrl); setIsUrlModalOpen(true); }}>
-              ⚙️ {serverUrl ? '의자 도메인 변경' : '의자 도메인 연결'}
-            </button>
-            <button className="history-btn" onClick={() => setActiveModal('daily')}>
-              📊 지난 자세점수 보기
-            </button>
-            <button className="monthly-btn" onClick={() => setActiveModal('monthly')}>
-              📅 월별 평균 점수
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* 2. 현재 상태 안내 띠 */}
-      <div className="current-status-banner">
-        <span>현재 감지 상태: </span>
-        <strong style={{ color: POSTURE_TYPES[currentPosture].color }}>
-          {POSTURE_TYPES[currentPosture].name}
-        </strong>
+    <div style={{ maxWidth: '420px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif', position: 'relative' }}>
+      
+      {/* 1. 상단: 연결 상태 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <span style={{ 
+          padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold',
+          backgroundColor: isConnected ? '#e6f7ed' : '#fff1f0',
+          color: isConnected ? '#1e7e34' : '#d93025'
+        }}>
+          {isConnected ? '● 모니터링 활성' : '● 연결 대기중'}
+        </span>
+        <button onClick={() => setIsEditingDomain(true)} style={{ fontSize: '12px', padding: '5px 8px' }}>⚙️ 주소</button>
       </div>
 
-      {/* 3. 본문: 원형 차트 & 상세 통계 */}
-      <div className="main-content">
-        <div className="chart-section">
-          <h3>오늘의 자세 비율</h3>
-          <div className="donut-container">
-            <div className="donut-chart" style={donutChartStyle}>
-              <div className="donut-hole">
-                <span className="donut-center-label">바른 자세</span>
-                <span className="donut-center-value">
-                  {postureStats.find(p => p.key === 'good')?.percentage.toFixed(0)}%
-                </span>
-              </div>
-            </div>
+      {isEditingDomain && (
+        <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '10px', marginBottom: '15px' }}>
+          <input style={{ width: '90%', padding: '6px', marginBottom: '8px' }} value={inputDomain} onChange={(e) => setInputDomain(e.target.value)} />
+          <div>
+            <button onClick={saveDomain} style={{ marginRight: '5px' }}>저장</button>
+            <button onClick={() => setIsEditingDomain(false)}>취소</button>
           </div>
         </div>
+      )}
 
-        <div className="details-section">
-          <h3>자세별 상세 통계 (자정 초기화)</h3>
-          <div className="stat-list">
-            {postureStats.map((item) => (
-              <div key={item.key} className="stat-item">
-                <div className="stat-header">
-                  <div className="stat-name-wrap">
-                    <span className="color-dot" style={{ backgroundColor: item.color }}></span>
-                    <span className="stat-name">{item.name}</span>
-                  </div>
-                  <span className="stat-ratio">{item.percentage.toFixed(1)}%</span>
-                </div>
-                <div className="progress-bar-bg">
-                  <div
-                    className="progress-bar-fill"
-                    style={{
-                      width: `${item.percentage}%`,
-                      backgroundColor: item.color,
-                    }}
-                  ></div>
-                </div>
-                <div className="stat-time">{formatTime(item.seconds)} 유지</div>
-              </div>
-            ))}
-          </div>
+      {/* 2. 타이머 */}
+      <div style={{ textAlign: 'center', margin: '15px 0' }}>
+        <h2 style={{ margin: '0 0 5px 0' }}>{new Date().toLocaleDateString('ko-KR')}</h2>
+        <p style={{ color: '#666', margin: 0 }}>총 착석 시간: <strong>{formatTime(sittingSeconds)}</strong></p>
+      </div>
+
+      {/* 3. 실시간 점수판 */}
+      <div style={{ background: chairData.tilt_warning ? '#fff3cd' : '#eafaf1', padding: '20px', borderRadius: '15px', textAlign: 'center', marginBottom: '20px' }}>
+        <div style={{ color: chairData.tilt_warning ? '#856404' : '#2d6a4f', fontSize: '14px' }}>실시간 자세 점수</div>
+        <div style={{ fontSize: '42px', fontWeight: 'bold', color: chairData.tilt_warning ? '#856404' : '#1b4332' }}>
+          {chairData.is_seated ? `${chairData.posture_score}점` : '-'}
+        </div>
+        <div style={{ marginTop: '8px', fontSize: '15px', color: '#555' }}>
+          상태: <strong style={{ color: chairData.tilt_warning ? '#d32f2f' : '#388e3c' }}>{chairData.posture_status}</strong>
         </div>
       </div>
 
-      {/* 4. 의자 주소(Cloudflare Tunnel) 설정 모달 */}
-      {isUrlModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsUrlModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>개인 스마트 의자 연결 설정</h3>
-              <button className="close-btn" onClick={() => setIsUrlModalOpen(false)}>✕</button>
-            </div>
-            <p className="modal-subtext">라즈베리파이의 Cloudflare Tunnel HTTPS 주소를 입력하세요.</p>
+      {/* 4. 방석 그래픽 */}
+      <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', width: '200px', margin: '0 auto', background: '#f1f3f5', padding: '12px', borderRadius: '12px' }}>
+          {chairData.sensors.map((val, idx) => {
+            let bgColor = '#ced4da'; 
+            if (val >= 150) bgColor = '#40c057';
+            else if (val >= 50) bgColor = '#b2f2bb';
+            return (
+              <div key={idx} style={{ height: '55px', borderRadius: '8px', backgroundColor: bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: bgColor === '#ced4da' ? '#868e96' : '#fff', fontWeight: 'bold', fontSize: '11px', transition: 'background-color 0.3s' }}>
+                {val}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 5. AI 메뉴 버튼들 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <button onClick={() => {setActiveModal('calibrate'); setCalibStep(0);}} style={{ padding: '12px', borderRadius: '8px', background: '#4263eb', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '15px' }}>
+          🎯 내 몸에 맞게 바른 자세 측정 (총 3회)
+        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => setActiveModal('daily')} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#f8f9fa', border: '1px solid #dee2e6', fontWeight: 'bold' }}>
+            📊 오늘의 세부 데이터
+          </button>
+          <button onClick={() => setActiveModal('monthly')} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#f8f9fa', border: '1px solid #dee2e6', fontWeight: 'bold' }}>
+            📅 월간 통계 및 피드백
+          </button>
+        </div>
+      </div>
+
+      {/* --- 모달 (팝업창) 디자인 --- */}
+      {activeModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 999 }}>
+          <div style={{ background: 'white', width: '85%', maxWidth: '350px', borderRadius: '15px', padding: '25px', boxSizing: 'border-box' }}>
             
-            <form onSubmit={handleSaveUrl}>
-              <input
-                type="text"
-                className="ip-input"
-                placeholder="예: chair1.yourdomain.com"
-                value={inputUrl}
-                onChange={(e) => setInputUrl(e.target.value)}
-                autoFocus
-              />
-              <p className="ip-help-text">
-                * Cloudflare Tunnel을 사용하면 외부 네트워크나 모바일 데이터(LTE/5G)에서도 접속할 수 있습니다.
-              </p>
-              <div className="modal-actions">
-                <button type="submit" className="modal-confirm-btn">
-                  연결 주소 저장
+            {/* 캘리브레이션 창 */}
+            {activeModal === 'calibrate' && (
+              <div style={{ textAlign: 'center' }}>
+                <h3>기준 자세 학습 ({calibStep}/3)</h3>
+                <p style={{ color: '#555', fontSize: '14px', lineHeight: '1.5' }}>
+                  {calibStep === 0 ? "의사결정나무 AI가 회원님의 체형을 학습합니다.\n허리를 펴고 바르게 앉아주세요." : `${calibStep}회차 측정 중입니다... 잠시 자세를 유지해 주세요.`}
+                </p>
+                <button onClick={handleCalibrate} style={{ width: '100%', padding: '12px', marginTop: '15px', background: '#4263eb', color: 'white', borderRadius: '8px', border: 'none' }}>
+                  {calibStep === 0 ? "측정 시작" : "다음 단계로"}
                 </button>
               </div>
-            </form>
+            )}
+
+            {/* 일간 통계 창 */}
+            {activeModal === 'daily' && (
+              <div>
+                <h3 style={{ margin: '0 0 15px 0' }}>오늘의 세부 데이터</h3>
+                <div style={{ background: '#f1f3f5', padding: '15px', borderRadius: '10px', marginBottom: '15px', fontSize: '14px' }}>
+                  <p><strong>가장 많이 감지된 자세:</strong> 우측 쏠림 (42%)</p>
+                  <p><strong>바른 자세 유지 비율:</strong> 35%</p>
+                </div>
+                <div style={{ background: '#e6fcf5', padding: '15px', borderRadius: '10px', fontSize: '13px', lineHeight: '1.6' }}>
+                  <strong>🤖 AI 맞춤 피드백</strong><br/>
+                  "오늘은 우측 쏠림 자세가 가장 많았습니다. 의사결정나무 분석 결과, 우측 허벅지(3번, 6번 센서)에 평균보다 40% 높은 하중이 집중되었습니다. 다리를 꼬는 습관을 점검해 보세요!"
+                </div>
+                <button onClick={() => setActiveModal(null)} style={{ width: '100%', padding: '10px', marginTop: '20px', borderRadius: '8px', border: '1px solid #ccc', background: 'white' }}>닫기</button>
+              </div>
+            )}
+
+            {/* 월간 통계 창 */}
+            {activeModal === 'monthly' && (
+              <div>
+                <h3 style={{ margin: '0 0 15px 0' }}>월간 자세 리포트</h3>
+                <div style={{ background: '#f1f3f5', padding: '15px', borderRadius: '10px', marginBottom: '15px', fontSize: '14px' }}>
+                  <p><strong>월 평균 점수:</strong> 82점 (전월 대비 ▲ 5점)</p>
+                  <p><strong>위험 알림 횟수:</strong> 총 14회 (▼ 8회 감소)</p>
+                </div>
+                <div style={{ background: '#e6fcf5', padding: '15px', borderRadius: '10px', fontSize: '13px', lineHeight: '1.6' }}>
+                  <strong>🤖 AI 종합 진단</strong><br/>
+                  "첫째 주 대비 넷째 주의 바른 자세 비율이 20% 상승했습니다. 특히 골반 불균형 수치가 눈에 띄게 개선되었습니다. 앞으로도 이 자세를 유지해 주세요!"
+                </div>
+                <button onClick={() => setActiveModal(null)} style={{ width: '100%', padding: '10px', marginTop: '20px', borderRadius: '8px', border: '1px solid #ccc', background: 'white' }}>닫기</button>
+              </div>
+            )}
+
           </div>
         </div>
       )}
 
-      {/* 5. 일별 지난 자세점수 모달 */}
-      {activeModal === 'daily' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>과거 자세점수 기록</h3>
-              <button className="close-btn" onClick={() => setActiveModal(null)}>✕</button>
-            </div>
-            <p className="modal-subtext">하루 착석 종료 시점의 최종 점수 (최근 1년 치 보관)</p>
-
-            <div className="history-list">
-              {historyScores.map((record, index) => {
-                const risk = getRiskInfo(record.score);
-                return (
-                  <div key={index} className="history-item">
-                    <div className="history-info">
-                      <span className="history-text">
-                        <strong>{record.date}</strong> 자세점수 <span className="highlight-score">{record.score}점</span>
-                      </span>
-                      <span className="history-sit-time">(착석 시간: {record.sitTime})</span>
-                    </div>
-                    <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <button className="modal-confirm-btn" onClick={() => setActiveModal(null)}>
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 6. 월별 평균 점수 모달 */}
-      {activeModal === 'monthly' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>월별 평균 점수 및 위험도</h3>
-              <button className="close-btn" onClick={() => setActiveModal(null)}>✕</button>
-            </div>
-            <p className="modal-subtext">한 달간 누적된 일일 점수의 평균 및 척추 불균형 위험도</p>
-
-            <div className="history-list">
-              {monthlyScores.map((item, index) => {
-                const risk = getRiskInfo(item.score);
-                return (
-                  <div key={index} className="history-item">
-                    <div className="history-info">
-                      <span className="history-text">
-                        <strong>{item.month}</strong> 자세점수 <span className="highlight-score">{item.score}점</span>
-                      </span>
-                      <span className="history-sit-time">(일평균 착석: {item.avgSitTime})</span>
-                    </div>
-                    <div className="monthly-risk-wrap">
-                      <span className="risk-text-label">위험도:</span>
-                      <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <button className="modal-confirm-btn" onClick={() => setActiveModal(null)}>
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-
-export default App;
-}
-
-export default App;
