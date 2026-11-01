@@ -27,7 +27,7 @@ function App() {
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  // 8채널 압력 센서 및 착석 상태
+  // 8채널 압력 센서 및 착석 상태 (초기값: 모두 0, 미착석)
   const [pressures, setPressures] = useState([0, 0, 0, 0, 0, 0, 0, 0]);
   const [isSitting, setIsSitting] = useState(false);
 
@@ -50,22 +50,22 @@ function App() {
     { month: '2026년 3월', score: 91, avgSitTime: '4시간 40분', topPosture: '바른 자세', feedback: '완벽에 가까운 자세 밸런스를 유지한 달입니다!' },
   ]);
 
-  // 오늘 누적된 각 자세별 시간
+  // 오늘 누적된 각 자세별 시간 (미연결 시 0초 초기화)
   const [postureSeconds, setPostureSeconds] = useState({
-    good: 180, left: 20, right: 15, forward: 25, slouch: 10,
+    good: 0, left: 0, right: 0, forward: 0, slouch: 0,
   });
 
   // 빨간색 원 크기 및 진하기 계산 로직
   const getCircleStyle = (val) => {
     const rawVal = val || 0;
     const ratio = Math.min(Math.max(rawVal / 1023, 0), 1);
-    const size = 20 + ratio * 42; // 지름: 20px ~ 62px
-    const opacity = 0.15 + ratio * 0.85; // 투명도: 0.15 ~ 1.0
+    const size = 20 + ratio * 42;
+    const opacity = 0.15 + ratio * 0.85;
 
     return {
       width: `${size}px`,
       height: `${size}px`,
-      backgroundColor: `rgba(239, 68, 68, ${opacity.toFixed(2)})`, // 빨간색 계열
+      backgroundColor: `rgba(239, 68, 68, ${opacity.toFixed(2)})`,
       boxShadow: ratio > 0.5 ? `0 0 ${Math.round(ratio * 12)}px rgba(239, 68, 68, 0.5)` : 'none',
       ratio: Math.round(ratio * 100),
     };
@@ -102,9 +102,8 @@ function App() {
     setIsUrlModalOpen(false);
   };
 
-  // 실시간 통신 및 폴백
+  // 실시간 백엔드 통신 (미연결 시 더미데이터 생성 완전 제거)
   useEffect(() => {
-    const keys = Object.keys(POSTURE_TYPES);
     const dataTimer = setInterval(async () => {
       if (serverUrl) {
         try {
@@ -119,22 +118,14 @@ function App() {
             return;
           }
         } catch {
+          // 통신 실패 시 미연결 상태로 전환
           setIsConnected(false);
+          setIsSitting(false);
         }
+      } else {
+        setIsConnected(false);
+        setIsSitting(false);
       }
-
-      // 오프라인 모의 시뮬레이션
-      const isGood = Math.random() < 0.7;
-      const detected = isGood ? 'good' : keys[Math.floor(Math.random() * keys.length)];
-      setCurrentPosture(detected);
-      setPostureSeconds((prev) => ({ ...prev, [detected]: prev[detected] + 1 }));
-      setIsSitting(true);
-
-      if (detected === 'good') setPressures([940, 950, 1010, 960, 1010, 1015, 940, 945]);
-      else if (detected === 'left') setPressures([970, 965, 970, 1020, 970, 960, 1020, 965]);
-      else if (detected === 'right') setPressures([940, 950, 1020, 960, 1020, 1020, 950, 1020]);
-      else if (detected === 'forward') setPressures([830, 880, 840, 1010, 860, 990, 1015, 1015]);
-      else setPressures([960, 960, 960, 970, 965, 955, 1020, 1020]);
     }, 1000);
 
     return () => clearInterval(dataTimer);
@@ -162,7 +153,10 @@ function App() {
     return { key, ...POSTURE_TYPES[key], seconds: sec, percentage: percentage };
   });
 
-  const healthScore = totalSeconds > 0 ? Math.round((postureSeconds.good / totalSeconds) * 100) : 100;
+  // 연결되어 있고 착석 시간이 있을 때만 점수 계산, 미연결 시 0점
+  const healthScore = isConnected && totalSeconds > 0 
+    ? Math.round((postureSeconds.good / totalSeconds) * 100) 
+    : 0;
 
   let cumulativePercent = 0;
   const gradientParts = postureStats.map((stat) => {
@@ -170,9 +164,12 @@ function App() {
     cumulativePercent += stat.percentage;
     return `${stat.color} ${start}% ${cumulativePercent}%`;
   });
-  const donutChartStyle = { background: `conic-gradient(${gradientParts.join(', ')})` };
+  const donutChartStyle = totalSeconds > 0
+    ? { background: `conic-gradient(${gradientParts.join(', ')})` }
+    : { background: '#e2e8f0' };
 
   const formatTime = (totalSec) => {
+    if (totalSec === 0) return '0초';
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
     const s = totalSec % 60;
@@ -204,7 +201,9 @@ function App() {
       <header className="header-card">
         <div className="header-left">
           <div className="status-indicators">
-            <span className="live-dot">● 모니터링 활성</span>
+            <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>
+              ● {isConnected ? '모니터링 활성' : '연결 대기 중'}
+            </span>
             {serverUrl && (
               <span className={`connection-badge ${isConnected ? 'online' : 'offline'}`}>
                 {isConnected ? `연결됨 (${getDisplayUrl(serverUrl)})` : `연결 대기중 (${getDisplayUrl(serverUrl)})`}
@@ -231,10 +230,7 @@ function App() {
             <button className="monthly-btn" onClick={() => setActiveModal('monthly')}>
               📅 월별 평균 점수
             </button>
-            <button 
-              style={{ background: '#4263eb', color: '#fff', border: 'none', fontWeight: 'bold', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }} 
-              onClick={() => { setActiveModal('calibrate'); setCalibStep(0); }}
-            >
+            <button className="calib-btn" onClick={() => { setActiveModal('calibrate'); setCalibStep(0); }}>
               🎯 바른 자세 측정 (AI 학습)
             </button>
           </div>
@@ -244,9 +240,13 @@ function App() {
       {/* 2. 현재 상태 안내 띠 */}
       <div className="current-status-banner">
         <span>현재 감지 상태: </span>
-        <strong style={{ color: POSTURE_TYPES[currentPosture].color }}>
-          {POSTURE_TYPES[currentPosture].name}
-        </strong>
+        {isConnected ? (
+          <strong style={{ color: POSTURE_TYPES[currentPosture]?.color || '#10b981' }}>
+            {POSTURE_TYPES[currentPosture]?.name}
+          </strong>
+        ) : (
+          <strong style={{ color: '#94a3b8' }}>의자 연결 대기 중 (신호 없음)</strong>
+        )}
       </div>
 
       {/* 3. 본문: 원형 차트 & 상세 통계 */}
@@ -258,7 +258,7 @@ function App() {
               <div className="donut-hole">
                 <span className="donut-center-label">바른 자세</span>
                 <span className="donut-center-value">
-                  {postureStats.find(p => p.key === 'good')?.percentage.toFixed(0)}%
+                  {totalSeconds > 0 ? `${postureStats.find(p => p.key === 'good')?.percentage.toFixed(0)}%` : '-'}
                 </span>
               </div>
             </div>
@@ -275,7 +275,7 @@ function App() {
                     <span className="color-dot" style={{ backgroundColor: item.color }}></span>
                     <span className="stat-name">{item.name}</span>
                   </div>
-                  <span className="stat-ratio">{item.percentage.toFixed(1)}%</span>
+                  <span className="stat-ratio">{totalSeconds > 0 ? `${item.percentage.toFixed(1)}%` : '0%'}</span>
                 </div>
                 <div className="progress-bar-bg">
                   <div
@@ -290,7 +290,7 @@ function App() {
         </div>
       </div>
 
-      {/* 4. 8채널 FSR 압력 센서 2D 의자 히트맵 (빨간색 가변 원 모드) */}
+      {/* 4. 8채널 FSR 압력 센서 2D 의자 히트맵 */}
       <div className="bottom-section">
         <div className="bottom-card">
           <div className="card-header">
@@ -299,14 +299,13 @@ function App() {
               <p className="card-subtext">압력이 높아질수록 붉은 원이 크고 진해집니다 (MCP3008 ADC 0~1023)</p>
             </div>
             <div className="sitting-status-tag">
-              <span className={`status-pill ${isSitting ? 'sitting' : 'empty'}`}>
-                {isSitting ? '착석 감지됨' : '빈 의자'}
+              <span className={`status-pill ${isConnected && isSitting ? 'sitting' : 'empty'}`}>
+                {isConnected && isSitting ? '착석 감지됨' : isConnected ? '빈 의자' : '연결 안 됨'}
               </span>
             </div>
           </div>
 
           <div className="heatmap-layout">
-            {/* 실제 의자 방석 센서 배치 (7,8 / 4,5,6 / 1,2,3) */}
             <div className="chair-visual-container">
               <div className="seat-front-label">▲ 허벅지 / 무릎 방향 (전방)</div>
 
@@ -392,7 +391,7 @@ function App() {
               <div className="seat-rear-label">▼ 등받이 방향 (후방)</div>
             </div>
 
-            {/* 우측: 범례 및 총 압력 통계 */}
+            {/* 우측 사이드바 */}
             <div className="heatmap-sidebar">
               <div className="pressure-summary-box">
                 <span className="summary-title">전체 압력 총합</span>
@@ -406,7 +405,7 @@ function App() {
                     className="threshold-bar-fill"
                     style={{ 
                       width: `${Math.min((pressures.reduce((a, b) => a + b, 0) / 8184) * 100, 100)}%`,
-                      backgroundColor: isSitting ? '#ef4444' : '#94a3b8'
+                      backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8'
                     }}
                   ></div>
                   <div className="threshold-marker" title="착석 기준선 (2500)" style={{ left: `${(2500 / 8184) * 100}%` }}></div>
@@ -418,7 +417,6 @@ function App() {
                 </div>
               </div>
 
-              {/* 붉은 원 크기/진하기 범례 */}
               <div className="legend-box">
                 <span className="legend-title">원 크기 &amp; 농도 가이드</span>
                 <div className="circle-legend-list">
@@ -450,7 +448,7 @@ function App() {
         </div>
       </div>
 
-      {/* 모달 1: 의자 주소 설정 */}
+      {/* 모달 영역 */}
       {isUrlModalOpen && (
         <div className="modal-overlay" onClick={() => setIsUrlModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -469,7 +467,6 @@ function App() {
         </div>
       )}
 
-      {/* 모달 2: 일별 지난 자세점수 */}
       {activeModal === 'daily' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -493,7 +490,7 @@ function App() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
                       <button 
-                        style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                        style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }}
                         onClick={() => { setSelectedDetail(record); setActiveModal('dailyDetail'); }}
                       >
                         세부 데이터 🔍
@@ -508,7 +505,6 @@ function App() {
         </div>
       )}
 
-      {/* 모달 3: 월별 평균 점수 */}
       {activeModal === 'monthly' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -532,7 +528,7 @@ function App() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
                       <button 
-                        style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                        style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }}
                         onClick={() => { setSelectedDetail(item); setActiveModal('monthlyDetail'); }}
                       >
                         세부 데이터 🔍
@@ -547,7 +543,6 @@ function App() {
         </div>
       )}
 
-      {/* 모달 4: AI 측정 모달 */}
       {activeModal === 'calibrate' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
@@ -570,7 +565,6 @@ function App() {
         </div>
       )}
 
-      {/* 모달 5: 일간 세부 데이터 */}
       {activeModal === 'dailyDetail' && selectedDetail && (
         <div className="modal-overlay" onClick={() => setActiveModal('daily')}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -596,7 +590,6 @@ function App() {
         </div>
       )}
 
-      {/* 모달 6: 월간 세부 데이터 */}
       {activeModal === 'monthlyDetail' && selectedDetail && (
         <div className="modal-overlay" onClick={() => setActiveModal('monthly')}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
