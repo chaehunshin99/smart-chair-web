@@ -8,7 +8,7 @@ body {
 }
 
 /* =========================================================
-   🖥️ 대시보드 3분할 제로 스크롤 레이아웃 (노트북 / 데스크톱 가로 모드)
+   🖥️ 대시보드 3열 제로 스크롤 레이아웃 (가로 화면)
    ========================================================= */
 .dashboard {
   max-width: 1440px;
@@ -16,10 +16,9 @@ body {
   padding: 0 16px;
   box-sizing: border-box;
   display: grid;
-  /* 좌측: 310px, 중앙: 1fr, 우측: 1.15fr 로 화면에 꽉 차게 3열 배치 */
   grid-template-columns: 310px 1fr 1.15fr;
   gap: 16px;
-  align-items: stretch;
+  align-items: start; /* 강제 세로 늘림 방지 */
 }
 
 .dashboard-col {
@@ -33,7 +32,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .card-title-bar h3 {
@@ -55,7 +54,7 @@ body {
 }
 
 /* =========================================================
-   1열: 좌측 제어 & 실시간 점수 카드
+   1열: 좌측 제어, 실시간 점수 & ST7920 LCD 카드
    ========================================================= */
 .header-card {
   background: white;
@@ -236,8 +235,69 @@ body {
   white-space: nowrap;
 }
 
+/* 📟 ST7920 그래픽 LCD 하드웨어 미니 뷰 카드 */
+.lcd-display-card {
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lcd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lcd-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.lcd-model-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.lcd-screen-frame {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.lcd-bezel {
+  background: #004b97; /* ST7920 블루 백라이트 색상 */
+  border: 2px solid #002d5c;
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3), 0 0 8px rgba(0, 75, 151, 0.4);
+}
+
+.lcd-pixel-line {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1px;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
+  white-space: pre;
+}
+
 /* =========================================================
-   2열: [통합] 자세 비율 도넛 차트 & 상세 통계 한눈에 보기
+   2열: [통합] 자세 비율 & 통계 (빈 공간 완전 밀착)
    ========================================================= */
 .unified-posture-card {
   background: white;
@@ -245,7 +305,6 @@ body {
   padding: 18px 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
-  height: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -255,12 +314,12 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 0 16px 0;
+  padding: 6px 0 12px 0; /* 상하 여백 최소화 */
 }
 
 .donut-chart {
-  width: 150px;
-  height: 150px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -270,8 +329,8 @@ body {
 }
 
 .donut-hole {
-  width: 100px;
-  height: 100px;
+  width: 95px;
+  height: 95px;
   background-color: white;
   border-radius: 50%;
   display: flex;
@@ -287,23 +346,23 @@ body {
 }
 
 .donut-center-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 900;
   color: #10b981;
 }
 
-/* 5개 자세 프로그레스 바 압축 리스트 */
+/* 도넛 차트 바로 밑으로 밀착 배치 */
 .compact-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: auto;
+  gap: 8px; /* 항목 간격 컴팩트화 */
+  margin-top: 4px; /* 기존 margin-top: auto 제거로 빈 공간 원천 차단 */
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .stat-header {
@@ -362,7 +421,7 @@ body {
 }
 
 /* =========================================================
-   3열: [상단 승격] 8채널 FSR 압력 센서 붉은 원 히트맵
+   3열: 8채널 FSR 압력 센서 붉은 원 히트맵
    ========================================================= */
 .heatmap-main-card {
   background: white;
@@ -370,11 +429,10 @@ body {
   padding: 18px 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
-  height: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 8px;
 }
 
 .card-subtext {
@@ -411,10 +469,9 @@ body {
   align-items: center;
   gap: 6px;
   background-color: #f8fafc;
-  padding: 12px 10px;
+  padding: 10px 8px;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
-  margin: 8px 0;
 }
 
 .seat-front-label, .seat-rear-label {
@@ -429,7 +486,7 @@ body {
   width: 100%;
   background: white;
   border: 2px solid #cbd5e1;
-  border-radius: 24px 24px 16px 16px;
+  border-radius: 22px 22px 14px 14px;
   padding: 10px 8px;
   box-sizing: border-box;
   display: flex;
@@ -475,8 +532,8 @@ body {
 }
 
 .circle-socket {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -498,17 +555,17 @@ body {
 .heatmap-compact-footer {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 8px 12px;
 }
 
 .pressure-total-wrap {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .total-title {
@@ -751,12 +808,12 @@ body {
   }
 
   .donut-chart {
-    width: 160px;
-    height: 160px;
+    width: 150px;
+    height: 150px;
   }
 
   .donut-hole {
-    width: 110px;
-    height: 110px;
+    width: 100px;
+    height: 100px;
   }
 }
