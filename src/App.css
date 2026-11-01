@@ -21,18 +21,33 @@ body {
   align-items: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
+  gap: 20px;
+}
+
+.header-left {
+  flex: 1;
+  min-width: 0;
 }
 
 .status-indicators {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .live-dot {
   font-size: 12px;
-  color: #10b981;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.live-dot.active {
+  color: #10b981;
+}
+
+.live-dot.inactive {
+  color: #94a3b8;
 }
 
 .connection-badge {
@@ -40,6 +55,7 @@ body {
   padding: 2px 8px;
   border-radius: 6px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .connection-badge.online {
@@ -54,16 +70,21 @@ body {
   border: 1px solid #cbd5e1;
 }
 
+/* 오늘 날짜 텍스트: 흐려짐 방지 및 한글자 잘림 방지 */
 .date-title {
-  margin: 6px 0 4px 0;
+  margin: 8px 0 4px 0;
   font-size: 24px;
   font-weight: 800;
+  color: #0f172a !important; /* 모바일/다크모드에서도 진한 검은색 유지 */
+  white-space: nowrap; /* '일요일' 끝글자 줄바꿈 원천 차단 */
+  word-break: keep-all;
 }
 
 .sub-info {
   margin: 0;
   font-size: 14px;
   color: #64748b;
+  white-space: nowrap;
 }
 
 .header-right {
@@ -79,6 +100,7 @@ body {
   padding: 8px 18px;
   border-radius: 12px;
   border: 1px solid #a7f3d0;
+  white-space: nowrap;
 }
 
 .score-label {
@@ -100,12 +122,14 @@ body {
   margin-left: 2px;
 }
 
+/* 상단 버튼 그룹: 가로화면에서도 버튼 텍스트가 줄바꿈되지 않도록 설정 */
 .button-group {
   display: flex;
   gap: 8px;
+  flex-wrap: nowrap;
 }
 
-.ip-btn, .history-btn, .monthly-btn {
+.ip-btn, .history-btn, .monthly-btn, .calib-btn {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   color: #334155;
@@ -115,6 +139,9 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap; /* 텍스트 쪼개짐 방지 */
+  word-break: keep-all;
+  flex-shrink: 0;
 }
 
 .ip-btn {
@@ -145,6 +172,16 @@ body {
   color: #1e40af;
 }
 
+.calib-btn {
+  background-color: #4263eb;
+  color: #ffffff;
+  border-color: #3b5bdb;
+}
+
+.calib-btn:hover {
+  background-color: #3b5bdb;
+}
+
 .current-status-banner {
   background: white;
   margin-top: 14px;
@@ -153,6 +190,7 @@ body {
   font-size: 15px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  white-space: nowrap;
 }
 
 .main-content {
@@ -174,6 +212,7 @@ h3 {
   margin: 0;
   font-size: 17px;
   color: #334155;
+  white-space: nowrap;
 }
 
 .donut-container {
@@ -235,6 +274,7 @@ h3 {
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .color-dot {
@@ -293,6 +333,7 @@ h3 {
   margin: 4px 0 0 0;
   font-size: 13px;
   color: #64748b;
+  word-break: keep-all;
 }
 
 .sitting-status-tag {
@@ -305,6 +346,7 @@ h3 {
   font-weight: 700;
   padding: 4px 12px;
   border-radius: 20px;
+  white-space: nowrap;
 }
 
 .status-pill.sitting {
@@ -343,6 +385,7 @@ h3 {
   font-weight: 700;
   color: #94a3b8;
   letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
 .actual-seat-cushion {
@@ -438,6 +481,7 @@ h3 {
   font-size: 12px;
   font-weight: 600;
   color: #64748b;
+  white-space: nowrap;
 }
 
 .total-val-row {
@@ -456,6 +500,7 @@ h3 {
 .threshold-info {
   font-size: 12px;
   color: #64748b;
+  white-space: nowrap;
 }
 
 .threshold-bar-bg {
@@ -487,6 +532,7 @@ h3 {
   font-size: 10px;
   color: #94a3b8;
   margin-top: 6px;
+  white-space: nowrap;
 }
 
 .marker-text {
@@ -507,6 +553,7 @@ h3 {
   color: #334155;
   display: block;
   margin-bottom: 8px;
+  white-space: nowrap;
 }
 
 .circle-legend-list {
@@ -526,12 +573,14 @@ h3 {
   font-size: 12px;
   color: #1e293b;
   display: block;
+  white-space: nowrap;
 }
 
 .circle-legend-item p {
   margin: 2px 0 0 0;
   font-size: 11px;
   color: #64748b;
+  word-break: keep-all;
 }
 
 .legend-circle-sample {
@@ -607,6 +656,7 @@ h3 {
   font-size: 13px;
   color: #64748b;
   margin: 6px 0 18px 0;
+  word-break: keep-all;
 }
 
 .ip-input {
@@ -641,6 +691,7 @@ h3 {
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
+  gap: 8px;
 }
 
 .history-info {
@@ -652,6 +703,7 @@ h3 {
 .history-text {
   font-size: 15px;
   color: #1e293b;
+  word-break: keep-all;
 }
 
 .highlight-score {
@@ -669,6 +721,7 @@ h3 {
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 6px;
+  white-space: nowrap;
 }
 
 .risk-safe {
@@ -700,12 +753,14 @@ h3 {
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  white-space: nowrap;
 }
 
 .modal-confirm-btn:hover {
   background-color: #0f172a;
 }
 
+/* 모바일 화면 대응 */
 @media (max-width: 768px) {
   .dashboard {
     padding: 0 12px;
@@ -727,6 +782,7 @@ h3 {
   .button-group {
     display: grid;
     grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .main-content {
