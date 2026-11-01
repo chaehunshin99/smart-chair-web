@@ -10,6 +10,9 @@ const POSTURE_TYPES = {
   slouch: { name: '뒤로 눕기 (슬라우칭)', color: '#8b5cf6' },
 };
 
+// 기본 도메인 주소 고정 (노트북/모바일 어디서 열어도 동일하게 배지 표시)
+const DEFAULT_SERVER_URL = 'https://api.smart-chair-web.site';
+
 function App() {
   const [todayDate, setTodayDate] = useState('');
   const [currentPosture, setCurrentPosture] = useState('good');
@@ -19,15 +22,15 @@ function App() {
   const [calibStep, setCalibStep] = useState(0);
   const [selectedDetail, setSelectedDetail] = useState(null);
 
-  // Cloudflare Tunnel 주소 관리
+  // Cloudflare Tunnel 주소 관리 (기본 도메인 자동 반영)
   const [serverUrl, setServerUrl] = useState(() => 
-    localStorage.getItem('chair_server_url') || localStorage.getItem('chair_pi_ip') || ''
+    localStorage.getItem('chair_server_url') || DEFAULT_SERVER_URL
   );
   const [inputUrl, setInputUrl] = useState('');
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  // 8채널 압력 센서 및 착석 상태 (초기값: 모두 0, 미착석)
+  // 8채널 압력 센서 및 착석 상태
   const [pressures, setPressures] = useState([0, 0, 0, 0, 0, 0, 0, 0]);
   const [isSitting, setIsSitting] = useState(false);
 
@@ -50,7 +53,7 @@ function App() {
     { month: '2026년 3월', score: 91, avgSitTime: '4시간 40분', topPosture: '바른 자세', feedback: '완벽에 가까운 자세 밸런스를 유지한 달입니다!' },
   ]);
 
-  // 오늘 누적된 각 자세별 시간 (미연결 시 0초 초기화)
+  // 오늘 누적된 각 자세별 시간
   const [postureSeconds, setPostureSeconds] = useState({
     good: 0, left: 0, right: 0, forward: 0, slouch: 0,
   });
@@ -96,13 +99,15 @@ function App() {
       if (clean.endsWith('/')) {
         clean = clean.slice(0, -1);
       }
+    } else {
+      clean = DEFAULT_SERVER_URL;
     }
     localStorage.setItem('chair_server_url', clean);
     setServerUrl(clean);
     setIsUrlModalOpen(false);
   };
 
-  // 실시간 백엔드 통신 (미연결 시 더미데이터 생성 완전 제거)
+  // 실시간 백엔드 통신 (미연결 시 더미데이터 완전 방지)
   useEffect(() => {
     const dataTimer = setInterval(async () => {
       if (serverUrl) {
@@ -118,7 +123,6 @@ function App() {
             return;
           }
         } catch {
-          // 통신 실패 시 미연결 상태로 전환
           setIsConnected(false);
           setIsSitting(false);
         }
@@ -153,7 +157,6 @@ function App() {
     return { key, ...POSTURE_TYPES[key], seconds: sec, percentage: percentage };
   });
 
-  // 연결되어 있고 착석 시간이 있을 때만 점수 계산, 미연결 시 0점
   const healthScore = isConnected && totalSeconds > 0 
     ? Math.round((postureSeconds.good / totalSeconds) * 100) 
     : 0;
@@ -198,42 +201,40 @@ function App() {
 
   return (
     <div className="dashboard">
+      {/* 1. 상단 카드 (모바일과 동일하게 세로 스택 순서로 정렬) */}
       <header className="header-card">
-        <div className="header-left">
-          <div className="status-indicators">
-            <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>
-              ● {isConnected ? '모니터링 활성' : '연결 대기 중'}
-            </span>
-            {serverUrl && (
-              <span className={`connection-badge ${isConnected ? 'online' : 'offline'}`}>
-                {isConnected ? `연결됨 (${getDisplayUrl(serverUrl)})` : `연결 대기중 (${getDisplayUrl(serverUrl)})`}
-              </span>
-            )}
-          </div>
-          <h2 className="date-title">{todayDate}</h2>
-          <p className="sub-info">오늘 총 착석 시간: <strong>{formatTime(totalSeconds)}</strong></p>
+        <div className="status-indicators">
+          <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>
+            ● {isConnected ? '모니터링 활성' : '연결 대기 중'}
+          </span>
+          <span className={`connection-badge ${isConnected ? 'online' : 'offline'}`}>
+            {isConnected ? `연결됨 (${getDisplayUrl(serverUrl)})` : `연결 대기중 (${getDisplayUrl(serverUrl)})`}
+          </span>
         </div>
 
-        <div className="header-right">
-          <div className="score-badge">
-            <div className="score-label">실시간 자세 점수</div>
-            <div className="score-number">{healthScore}<span className="score-unit">점</span></div>
-          </div>
-          
-          <div className="button-group">
-            <button className="ip-btn" onClick={() => { setInputUrl(serverUrl); setIsUrlModalOpen(true); }}>
-              ⚙️ {serverUrl ? '의자 도메인 변경' : '의자 도메인 연결'}
-            </button>
-            <button className="history-btn" onClick={() => setActiveModal('daily')}>
-              📊 지난 자세점수 보기
-            </button>
-            <button className="monthly-btn" onClick={() => setActiveModal('monthly')}>
-              📅 월별 평균 점수
-            </button>
-            <button className="calib-btn" onClick={() => { setActiveModal('calibrate'); setCalibStep(0); }}>
-              🎯 바른 자세 측정 (AI 학습)
-            </button>
-          </div>
+        <h2 className="date-title">{todayDate}</h2>
+        <p className="sub-info">오늘 총 착석 시간: <strong>{formatTime(totalSeconds)}</strong></p>
+
+        {/* 점수 뱃지 (스마트폰처럼 날짜 바로 아래에 카드 형태로 표시) */}
+        <div className="score-badge">
+          <div className="score-label">실시간 자세 점수</div>
+          <div className="score-number">{healthScore}<span className="score-unit">점</span></div>
+        </div>
+        
+        {/* 4개 버튼 (스마트폰처럼 세로 1열 풀사이즈로 표시) */}
+        <div className="button-group">
+          <button className="ip-btn" onClick={() => { setInputUrl(serverUrl); setIsUrlModalOpen(true); }}>
+            ⚙️ {serverUrl ? '의자 도메인 변경' : '의자 도메인 연결'}
+          </button>
+          <button className="history-btn" onClick={() => setActiveModal('daily')}>
+            📊 지난 자세점수 보기
+          </button>
+          <button className="monthly-btn" onClick={() => setActiveModal('monthly')}>
+            📅 월별 평균 점수
+          </button>
+          <button className="calib-btn" onClick={() => { setActiveModal('calibrate'); setCalibStep(0); }}>
+            🎯 바른 자세 측정 (AI 학습)
+          </button>
         </div>
       </header>
 
@@ -249,7 +250,7 @@ function App() {
         )}
       </div>
 
-      {/* 3. 본문: 원형 차트 & 상세 통계 */}
+      {/* 3. 본문: 원형 차트 & 상세 통계 (스마트폰처럼 위아래 세로 배치) */}
       <div className="main-content">
         <div className="chart-section">
           <h3>오늘의 자세 비율</h3>
@@ -391,7 +392,6 @@ function App() {
               <div className="seat-rear-label">▼ 등받이 방향 (후방)</div>
             </div>
 
-            {/* 우측 사이드바 */}
             <div className="heatmap-sidebar">
               <div className="pressure-summary-box">
                 <span className="summary-title">전체 압력 총합</span>
@@ -458,7 +458,7 @@ function App() {
             </div>
             <p className="modal-subtext">라즈베리파이의 Cloudflare Tunnel HTTPS 주소를 입력하세요.</p>
             <form onSubmit={handleSaveUrl}>
-              <input type="text" className="ip-input" placeholder="예: chair.yourdomain.com" value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} autoFocus />
+              <input type="text" className="ip-input" placeholder="예: api.smart-chair-web.site" value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} autoFocus />
               <div className="modal-actions">
                 <button type="submit" className="modal-confirm-btn">연결 주소 저장</button>
               </div>
