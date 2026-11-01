@@ -10,7 +10,6 @@ const POSTURE_TYPES = {
   slouch: { name: '뒤로 눕기 (슬라우칭)', color: '#8b5cf6' },
 };
 
-// 기본 도메인 주소 고정 (노트북/모바일 어디서든 배지 자동 표시)
 const DEFAULT_SERVER_URL = 'https://api.smart-chair-web.site';
 
 function App() {
@@ -62,14 +61,14 @@ function App() {
   const getCircleStyle = (val) => {
     const rawVal = val || 0;
     const ratio = Math.min(Math.max(rawVal / 1023, 0), 1);
-    const size = 20 + ratio * 42;
+    const size = 18 + ratio * 36; // 높이 최적화를 위해 최대 54px로 살짝 조정
     const opacity = 0.15 + ratio * 0.85;
 
     return {
       width: `${size}px`,
       height: `${size}px`,
       backgroundColor: `rgba(239, 68, 68, ${opacity.toFixed(2)})`,
-      boxShadow: ratio > 0.5 ? `0 0 ${Math.round(ratio * 12)}px rgba(239, 68, 68, 0.5)` : 'none',
+      boxShadow: ratio > 0.5 ? `0 0 ${Math.round(ratio * 10)}px rgba(239, 68, 68, 0.5)` : 'none',
       ratio: Math.round(ratio * 100),
     };
   };
@@ -201,8 +200,8 @@ function App() {
 
   return (
     <div className="dashboard">
-      {/* ⬅️ [좌측 패널]: 상단 제어 카드 & 현재 감지 상태 */}
-      <div className="dashboard-left">
+      {/* 1열: 좌측 제어 & 점수 카드 */}
+      <div className="dashboard-col col-left">
         <header className="header-card">
           <div className="status-indicators">
             <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>
@@ -249,202 +248,166 @@ function App() {
         </div>
       </div>
 
-      {/* ➡️ [우측 패널]: 차트 + 통계 + 8채널 압력 히트맵 */}
-      <div className="dashboard-right">
-        {/* 상단: 도넛 차트 & 자세별 통계 */}
-        <div className="main-content">
-          <div className="chart-section">
-            <h3>오늘의 자세 비율</h3>
-            <div className="donut-container">
-              <div className="donut-chart" style={donutChartStyle}>
-                <div className="donut-hole">
-                  <span className="donut-center-label">바른 자세</span>
-                  <span className="donut-center-value">
-                    {totalSeconds > 0 ? `${postureStats.find(p => p.key === 'good')?.percentage.toFixed(0)}%` : '-'}
-                  </span>
-                </div>
-              </div>
-            </div>
+      {/* 2열: [통합] 자세 비율 & 상세 통계 한눈에 보기 카드 */}
+      <div className="dashboard-col col-center">
+        <div className="unified-posture-card">
+          <div className="card-title-bar">
+            <h3>오늘의 자세 비율 &amp; 상세 분석</h3>
+            <span className="card-tag">자정 자동 초기화</span>
           </div>
 
-          <div className="details-section">
-            <h3>자세별 상세 통계 (자정 초기화)</h3>
-            <div className="stat-list">
-              {postureStats.map((item) => (
-                <div key={item.key} className="stat-item">
-                  <div className="stat-header">
-                    <div className="stat-name-wrap">
-                      <span className="color-dot" style={{ backgroundColor: item.color }}></span>
-                      <span className="stat-name">{item.name}</span>
-                    </div>
-                    <span className="stat-ratio">{totalSeconds > 0 ? `${item.percentage.toFixed(1)}%` : '0%'}</span>
-                  </div>
-                  <div className="progress-bar-bg">
-                    <div
-                      className="progress-bar-fill"
-                      style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                    ></div>
-                  </div>
-                  <div className="stat-time">{formatTime(item.seconds)} 유지</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 하단: 8채널 FSR 압력 센서 2D 의자 히트맵 */}
-        <div className="bottom-section">
-          <div className="bottom-card">
-            <div className="card-header">
-              <div>
-                <h3>실시간 압력 분포 히트맵 (8채널 FSR)</h3>
-                <p className="card-subtext">압력이 높아질수록 붉은 원이 크고 진해집니다 (MCP3008 ADC 0~1023)</p>
-              </div>
-              <div className="sitting-status-tag">
-                <span className={`status-pill ${isConnected && isSitting ? 'sitting' : 'empty'}`}>
-                  {isConnected && isSitting ? '착석 감지됨' : isConnected ? '빈 의자' : '연결 안 됨'}
+          <div className="donut-wrap">
+            <div className="donut-chart" style={donutChartStyle}>
+              <div className="donut-hole">
+                <span className="donut-center-label">바른 자세 유지율</span>
+                <span className="donut-center-value">
+                  {totalSeconds > 0 ? `${postureStats.find(p => p.key === 'good')?.percentage.toFixed(0)}%` : '-'}
                 </span>
               </div>
             </div>
+          </div>
 
-            <div className="heatmap-layout">
-              <div className="chair-visual-container">
-                <div className="seat-front-label">▲ 허벅지 / 무릎 방향 (전방)</div>
-
-                <div className="actual-seat-cushion">
-                  {/* 1열: 전방 (사진 7번, 8번 -> 채널 6, 7) */}
-                  <div className="sensor-row front-row">
-                    {[
-                      { ch: 6, label: '7번 (전방 좌)' },
-                      { ch: 7, label: '8번 (전방 우)' }
-                    ].map((s) => {
-                      const circle = getCircleStyle(pressures[s.ch]);
-                      return (
-                        <div key={s.ch} className="sensor-node">
-                          <span className="node-id">{s.label}</span>
-                          <div className="circle-socket">
-                            <div className="pressure-circle" style={{
-                              width: circle.width,
-                              height: circle.height,
-                              backgroundColor: circle.backgroundColor,
-                              boxShadow: circle.boxShadow
-                            }}></div>
-                          </div>
-                          <strong className="node-val">{pressures[s.ch]}</strong>
-                          <span className="node-percent">{circle.ratio}%</span>
-                        </div>
-                      );
-                    })}
+          <div className="stat-list compact-list">
+            {postureStats.map((item) => (
+              <div key={item.key} className="stat-item">
+                <div className="stat-header">
+                  <div className="stat-name-wrap">
+                    <span className="color-dot" style={{ backgroundColor: item.color }}></span>
+                    <span className="stat-name">{item.name}</span>
                   </div>
-
-                  {/* 2열: 중앙 (사진 4번, 5번, 6번 -> 채널 3, 4, 5) */}
-                  <div className="sensor-row center-row">
-                    {[
-                      { ch: 3, label: '4번 (중앙 좌)' },
-                      { ch: 4, label: '5번 (중앙)' },
-                      { ch: 5, label: '6번 (중앙 우)' }
-                    ].map((s) => {
-                      const circle = getCircleStyle(pressures[s.ch]);
-                      return (
-                        <div key={s.ch} className="sensor-node">
-                          <span className="node-id">{s.label}</span>
-                          <div className="circle-socket">
-                            <div className="pressure-circle" style={{
-                              width: circle.width,
-                              height: circle.height,
-                              backgroundColor: circle.backgroundColor,
-                              boxShadow: circle.boxShadow
-                            }}></div>
-                          </div>
-                          <strong className="node-val">{pressures[s.ch]}</strong>
-                          <span className="node-percent">{circle.ratio}%</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* 3열: 후방 (사진 1번, 2번, 3번 -> 채널 0, 1, 2) */}
-                  <div className="sensor-row rear-row">
-                    {[
-                      { ch: 0, label: '1번 (후방 좌)' },
-                      { ch: 1, label: '2번 (후방 중)' },
-                      { ch: 2, label: '3번 (후방 우)' }
-                    ].map((s) => {
-                      const circle = getCircleStyle(pressures[s.ch]);
-                      return (
-                        <div key={s.ch} className="sensor-node">
-                          <span className="node-id">{s.label}</span>
-                          <div className="circle-socket">
-                            <div className="pressure-circle" style={{
-                              width: circle.width,
-                              height: circle.height,
-                              backgroundColor: circle.backgroundColor,
-                              boxShadow: circle.boxShadow
-                            }}></div>
-                          </div>
-                          <strong className="node-val">{pressures[s.ch]}</strong>
-                          <span className="node-percent">{circle.ratio}%</span>
-                        </div>
-                      );
-                    })}
+                  <div className="stat-values">
+                    <span className="stat-ratio">{totalSeconds > 0 ? `${item.percentage.toFixed(1)}%` : '0%'}</span>
+                    <span className="stat-time-tag">({formatTime(item.seconds)})</span>
                   </div>
                 </div>
-
-                <div className="seat-rear-label">▼ 등받이 방향 (후방)</div>
-              </div>
-
-              <div className="heatmap-sidebar">
-                <div className="pressure-summary-box">
-                  <span className="summary-title">전체 압력 총합</span>
-                  <div className="total-val-row">
-                    <span className="total-num">{pressures.reduce((a, b) => a + b, 0)}</span>
-                    <span className="threshold-info">/ 착석 기준 2500</span>
-                  </div>
-                  
-                  <div className="threshold-bar-bg">
-                    <div 
-                      className="threshold-bar-fill"
-                      style={{ 
-                        width: `${Math.min((pressures.reduce((a, b) => a + b, 0) / 8184) * 100, 100)}%`,
-                        backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8'
-                      }}
-                    ></div>
-                    <div className="threshold-marker" title="착석 기준선 (2500)" style={{ left: `${(2500 / 8184) * 100}%` }}></div>
-                  </div>
-                  <div className="threshold-caption">
-                    <span>0</span>
-                    <span className="marker-text">▲ 기준치(2500)</span>
-                    <span>8184</span>
-                  </div>
-                </div>
-
-                <div className="legend-box">
-                  <span className="legend-title">원 크기 &amp; 농도 가이드</span>
-                  <div className="circle-legend-list">
-                    <div className="circle-legend-item">
-                      <div className="legend-circle-sample sample-high"></div>
-                      <div>
-                        <strong>강한 압력 (750 ~ 1023)</strong>
-                        <p>원 크기 최대(62px), 붉은색 100% 진함</p>
-                      </div>
-                    </div>
-                    <div className="circle-legend-item">
-                      <div className="legend-circle-sample sample-mid"></div>
-                      <div>
-                        <strong>중간 압력 (300 ~ 749)</strong>
-                        <p>중간 크기, 연한 붉은색</p>
-                      </div>
-                    </div>
-                    <div className="circle-legend-item">
-                      <div className="legend-circle-sample sample-low"></div>
-                      <div>
-                        <strong>약한 접촉 / 미접촉 (0 ~ 299)</strong>
-                        <p>최소 크기(20px), 매우 연함</p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="progress-bar-bg">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                  ></div>
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 3열: [상단 승격] 실시간 압력 분포 히트맵 카드 */}
+      <div className="dashboard-col col-right">
+        <div className="heatmap-main-card">
+          <div className="card-title-bar">
+            <div>
+              <h3>실시간 압력 분포 히트맵 (8채널)</h3>
+              <p className="card-subtext">압력이 높아질수록 붉은 원이 커집니다</p>
+            </div>
+            <span className={`status-pill ${isConnected && isSitting ? 'sitting' : 'empty'}`}>
+              {isConnected && isSitting ? '착석 중' : isConnected ? '빈 의자' : '연결 안 됨'}
+            </span>
+          </div>
+
+          {/* 의자 방석 UI */}
+          <div className="chair-visual-container">
+            <div className="seat-front-label">▲ 전방 (무릎 / 허벅지)</div>
+
+            <div className="actual-seat-cushion">
+              {/* 1열: 전방 7, 8 */}
+              <div className="sensor-row front-row">
+                {[
+                  { ch: 6, label: '7번 (전방 좌)' },
+                  { ch: 7, label: '8번 (전방 우)' }
+                ].map((s) => {
+                  const circle = getCircleStyle(pressures[s.ch]);
+                  return (
+                    <div key={s.ch} className="sensor-node">
+                      <span className="node-id">{s.label}</span>
+                      <div className="circle-socket">
+                        <div className="pressure-circle" style={{
+                          width: circle.width,
+                          height: circle.height,
+                          backgroundColor: circle.backgroundColor,
+                          boxShadow: circle.boxShadow
+                        }}></div>
+                      </div>
+                      <strong className="node-val">{pressures[s.ch]}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 2열: 중앙 4, 5, 6 */}
+              <div className="sensor-row center-row">
+                {[
+                  { ch: 3, label: '4번 (중앙 좌)' },
+                  { ch: 4, label: '5번 (중앙)' },
+                  { ch: 5, label: '6번 (중앙 우)' }
+                ].map((s) => {
+                  const circle = getCircleStyle(pressures[s.ch]);
+                  return (
+                    <div key={s.ch} className="sensor-node">
+                      <span className="node-id">{s.label}</span>
+                      <div className="circle-socket">
+                        <div className="pressure-circle" style={{
+                          width: circle.width,
+                          height: circle.height,
+                          backgroundColor: circle.backgroundColor,
+                          boxShadow: circle.boxShadow
+                        }}></div>
+                      </div>
+                      <strong className="node-val">{pressures[s.ch]}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 3열: 후방 1, 2, 3 */}
+              <div className="sensor-row rear-row">
+                {[
+                  { ch: 0, label: '1번 (후방 좌)' },
+                  { ch: 1, label: '2번 (후방 중)' },
+                  { ch: 2, label: '3번 (후방 우)' }
+                ].map((s) => {
+                  const circle = getCircleStyle(pressures[s.ch]);
+                  return (
+                    <div key={s.ch} className="sensor-node">
+                      <span className="node-id">{s.label}</span>
+                      <div className="circle-socket">
+                        <div className="pressure-circle" style={{
+                          width: circle.width,
+                          height: circle.height,
+                          backgroundColor: circle.backgroundColor,
+                          boxShadow: circle.boxShadow
+                        }}></div>
+                      </div>
+                      <strong className="node-val">{pressures[s.ch]}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="seat-rear-label">▼ 후방 (등받이 쪽)</div>
+          </div>
+
+          {/* 하단 요약 게이지 & 미니 범례 */}
+          <div className="heatmap-compact-footer">
+            <div className="pressure-total-wrap">
+              <span className="total-title">압력 합계: <strong>{pressures.reduce((a, b) => a + b, 0)}</strong> / 기준 2500</span>
+              <div className="threshold-bar-bg">
+                <div 
+                  className="threshold-bar-fill"
+                  style={{ 
+                    width: `${Math.min((pressures.reduce((a, b) => a + b, 0) / 8184) * 100, 100)}%`,
+                    backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8'
+                  }}
+                ></div>
+                <div className="threshold-marker" style={{ left: `${(2500 / 8184) * 100}%` }}></div>
+              </div>
+            </div>
+
+            <div className="circle-mini-legend">
+              <div className="mini-legend-item"><span className="mini-dot dot-high"></span> 강함 (&gt;750)</div>
+              <div className="mini-legend-item"><span className="mini-dot dot-mid"></span> 보통 (300~749)</div>
+              <div className="mini-legend-item"><span className="mini-dot dot-low"></span> 약함 (&lt;300)</div>
             </div>
           </div>
         </div>
