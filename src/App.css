@@ -4,54 +4,84 @@ body {
   background-color: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1e293b;
+  overflow-x: hidden;
 }
 
 /* =========================================================
-   대시보드 메인 컨테이너 (노트북/데스크톱 가로 모드 기본)
+   🖥️ 대시보드 3분할 제로 스크롤 레이아웃 (노트북 / 데스크톱 가로 모드)
    ========================================================= */
 .dashboard {
-  max-width: 1320px; /* 가로 화면에서 꽉 차게 넓이 확장 */
-  margin: 24px auto;
-  padding: 0 24px;
+  max-width: 1440px;
+  margin: 16px auto;
+  padding: 0 16px;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 380px 1fr; /* 좌측: 제어 패널(380px), 우측: 차트 및 히트맵(남은 너비 전체) */
-  gap: 24px;
-  align-items: start;
+  /* 좌측: 310px, 중앙: 1fr, 우측: 1.15fr 로 화면에 꽉 차게 3열 배치 */
+  grid-template-columns: 310px 1fr 1.15fr;
+  gap: 16px;
+  align-items: stretch;
 }
 
-/* ⬅️ [좌측 패널]: 헤더 제어 카드 및 상태 띠 */
-.dashboard-left {
+.dashboard-col {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
+/* 공통 카드 타이틀 바 */
+.card-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.card-title-bar h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.card-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background-color: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   1열: 좌측 제어 & 실시간 점수 카드
+   ========================================================= */
 .header-card {
   background: white;
-  border-radius: 18px;
-  padding: 24px 20px;
+  border-radius: 16px;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
-  gap: 12px;
+  gap: 10px;
 }
 
 .status-indicators {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   width: 100%;
 }
 
 .live-dot {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -64,9 +94,9 @@ body {
 }
 
 .connection-badge {
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 6px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 5px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -84,8 +114,8 @@ body {
 }
 
 .date-title {
-  margin: 6px 0 2px 0;
-  font-size: 24px;
+  margin: 2px 0;
+  font-size: 20px;
   font-weight: 800;
   color: #0f172a !important;
   white-space: nowrap;
@@ -94,7 +124,7 @@ body {
 
 .sub-info {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   color: #64748b;
   white-space: nowrap;
 }
@@ -104,20 +134,19 @@ body {
   box-sizing: border-box;
   text-align: right;
   background: #f0fdf4;
-  padding: 12px 20px;
+  padding: 10px 16px;
   border-radius: 12px;
   border: 1px solid #bbf7d0;
-  margin-top: 4px;
 }
 
 .score-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #166534;
   font-weight: 700;
 }
 
 .score-number {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 900;
   color: #15803d;
   line-height: 1.1;
@@ -125,7 +154,7 @@ body {
 }
 
 .score-unit {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: normal;
   margin-left: 2px;
 }
@@ -133,9 +162,9 @@ body {
 .button-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .ip-btn, .history-btn, .monthly-btn, .calib-btn {
@@ -144,9 +173,9 @@ body {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   color: #334155;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -198,64 +227,51 @@ body {
 
 .current-status-banner {
   background: white;
-  padding: 14px 20px;
-  border-radius: 14px;
-  font-size: 15px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
   text-align: center;
   white-space: nowrap;
 }
 
-/* ➡️ [우측 패널]: 차트/통계 및 하단 히트맵 */
-.dashboard-right {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.main-content {
-  display: grid;
-  grid-template-columns: 1fr 1.3fr; /* 차트와 통계를 가로 2열 배치 */
-  gap: 20px;
-}
-
-.chart-section, .details-section {
+/* =========================================================
+   2열: [통합] 자세 비율 도넛 차트 & 상세 통계 한눈에 보기
+   ========================================================= */
+.unified-posture-card {
   background: white;
-  border-radius: 18px;
-  padding: 24px 20px;
+  border-radius: 16px;
+  padding: 18px 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-h3 {
-  margin: 0;
-  font-size: 16px;
-  color: #334155;
-  white-space: nowrap;
-}
-
-.donut-container {
+.donut-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 24px 0 10px 0;
+  padding: 8px 0 16px 0;
 }
 
 .donut-chart {
-  width: 190px;
-  height: 190px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
   transition: background 0.5s ease;
 }
 
 .donut-hole {
-  width: 125px;
-  height: 125px;
+  width: 100px;
+  height: 100px;
   background-color: white;
   border-radius: 50%;
   display: flex;
@@ -265,56 +281,75 @@ h3 {
 }
 
 .donut-center-label {
-  font-size: 12px;
+  font-size: 10px;
   color: #64748b;
+  font-weight: 600;
 }
 
 .donut-center-value {
-  font-size: 30px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 900;
   color: #10b981;
 }
 
-.stat-list {
+/* 5개 자세 프로그레스 바 압축 리스트 */
+.compact-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-top: 18px;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .stat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
-  margin-bottom: 5px;
+  font-size: 12px;
 }
 
 .stat-name-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   white-space: nowrap;
 }
 
 .color-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
 
 .stat-name {
   font-weight: 600;
+  color: #334155;
+}
+
+.stat-values {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .stat-ratio {
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
+}
+
+.stat-time-tag {
+  font-size: 10px;
+  color: #94a3b8;
 }
 
 .progress-bar-bg {
   width: 100%;
-  height: 6px;
+  height: 5px;
   background-color: #f1f5f9;
   border-radius: 3px;
   overflow: hidden;
@@ -326,46 +361,33 @@ h3 {
   transition: width 0.4s ease;
 }
 
-.stat-time {
-  font-size: 11px;
-  color: #94a3b8;
-  text-align: right;
-  margin-top: 2px;
-}
-
 /* =========================================================
-   8채널 붉은 원 압력 히트맵 (와이드 가로형)
+   3열: [상단 승격] 8채널 FSR 압력 센서 붉은 원 히트맵
    ========================================================= */
-.bottom-section {
-  width: 100%;
-}
-
-.bottom-card {
+.heatmap-main-card {
   background: white;
-  border-radius: 18px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 18px 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
-}
-
-.card-header {
+  height: 100%;
+  box-sizing: border-box;
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
 }
 
 .card-subtext {
-  margin: 4px 0 0 0;
-  font-size: 13px;
+  margin: 2px 0 0 0;
+  font-size: 11px;
   color: #64748b;
   word-break: keep-all;
 }
 
 .status-pill {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 5px 14px;
+  padding: 3px 10px;
   border-radius: 20px;
   white-space: nowrap;
 }
@@ -382,26 +404,21 @@ h3 {
   border: 1px solid #cbd5e1;
 }
 
-.heatmap-layout {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 24px;
-  align-items: center;
-}
-
+/* 의자 방석 컨테이너 */
 .chair-visual-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background-color: #f8fafc;
-  padding: 20px 16px;
-  border-radius: 18px;
+  padding: 12px 10px;
+  border-radius: 14px;
   border: 1px solid #e2e8f0;
+  margin: 8px 0;
 }
 
 .seat-front-label, .seat-rear-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #94a3b8;
   letter-spacing: -0.2px;
@@ -410,27 +427,26 @@ h3 {
 
 .actual-seat-cushion {
   width: 100%;
-  max-width: 360px;
   background: white;
   border: 2px solid #cbd5e1;
-  border-radius: 28px 28px 18px 18px;
-  padding: 16px 14px;
+  border-radius: 24px 24px 16px 16px;
+  padding: 10px 8px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.03);
+  gap: 8px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .sensor-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
 
 .front-row {
   justify-content: space-around;
-  padding: 0 20px;
+  padding: 0 16px;
   box-sizing: border-box;
 }
 
@@ -440,31 +456,31 @@ h3 {
 
 .sensor-node {
   flex: 1;
-  padding: 8px 4px;
-  border-radius: 12px;
+  padding: 4px 2px;
+  border-radius: 8px;
   background-color: #ffffff;
   border: 1px solid #f1f5f9;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .node-id {
-  font-size: 10px;
+  font-size: 9px;
   color: #64748b;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .circle-socket {
-  width: 66px;
-  height: 66px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 4px 0;
+  margin: 2px 0;
 }
 
 .pressure-circle {
@@ -473,155 +489,93 @@ h3 {
 }
 
 .node-val {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 900;
   color: #0f172a;
 }
 
-.node-percent {
-  font-size: 10px;
-  color: #94a3b8;
-}
-
-.heatmap-sidebar {
+/* 히트맵 하단 게이지 및 미니 범례 */
+.heatmap-compact-footer {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.pressure-summary-box {
+  gap: 8px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 10px;
+  padding: 10px 12px;
 }
 
-.summary-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-  white-space: nowrap;
-}
-
-.total-val-row {
+.pressure-total-wrap {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 6px 0 10px 0;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.total-num {
-  font-size: 26px;
-  font-weight: 900;
-  color: #0f172a;
-}
-
-.threshold-info {
-  font-size: 12px;
+.total-title {
+  font-size: 11px;
   color: #64748b;
-  white-space: nowrap;
+  font-weight: 600;
+}
+
+.total-title strong {
+  font-size: 13px;
+  color: #0f172a;
 }
 
 .threshold-bar-bg {
   position: relative;
   width: 100%;
-  height: 8px;
+  height: 6px;
   background-color: #e2e8f0;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: visible;
 }
 
 .threshold-bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .threshold-marker {
   position: absolute;
-  top: -4px;
+  top: -3px;
   width: 2px;
-  height: 16px;
+  height: 12px;
   background-color: #ef4444;
 }
 
-.threshold-caption {
+.circle-mini-legend {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 10px;
-  color: #94a3b8;
-  margin-top: 6px;
-  white-space: nowrap;
+  color: #64748b;
+  margin-top: 2px;
 }
 
-.marker-text {
-  color: #ef4444;
-  font-weight: 700;
-}
-
-.legend-box {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.legend-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #334155;
-  display: block;
-  margin-bottom: 8px;
-  white-space: nowrap;
-}
-
-.circle-legend-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.circle-legend-item {
+.mini-legend-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
 }
 
-.circle-legend-item strong {
-  font-size: 12px;
-  color: #1e293b;
-  display: block;
-  white-space: nowrap;
-}
-
-.circle-legend-item p {
-  margin: 2px 0 0 0;
-  font-size: 11px;
-  color: #64748b;
-  word-break: keep-all;
-}
-
-.legend-circle-sample {
+.mini-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  flex-shrink: 0;
+  display: inline-block;
 }
 
-.sample-high {
-  width: 26px;
-  height: 26px;
+.dot-high {
   background-color: rgba(239, 68, 68, 1.0);
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
-.sample-mid {
-  width: 18px;
-  height: 18px;
+.dot-mid {
   background-color: rgba(239, 68, 68, 0.5);
 }
 
-.sample-low {
-  width: 12px;
-  height: 12px;
+.dot-low {
   background-color: rgba(239, 68, 68, 0.18);
 }
 
@@ -645,9 +599,9 @@ h3 {
 .modal-content {
   background: white;
   width: 90%;
-  max-width: 480px;
+  max-width: 440px;
   border-radius: 18px;
-  padding: 24px;
+  padding: 22px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
 }
@@ -785,29 +739,24 @@ h3 {
 @media (max-width: 1024px) {
   .dashboard {
     max-width: 480px;
-    margin: 16px auto;
+    margin: 14px auto 30px auto;
     padding: 0 12px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
   }
 
-  .dashboard-left, .dashboard-right {
+  .dashboard-col {
     width: 100%;
   }
 
-  .main-content {
-    grid-template-columns: 1fr;
+  .donut-chart {
+    width: 160px;
+    height: 160px;
   }
 
-  .heatmap-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    text-align: center;
+  .donut-hole {
+    width: 110px;
+    height: 110px;
   }
 }
