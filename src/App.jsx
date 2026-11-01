@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// 5가지 자세 정의 (원본 유지)
+// 5가지 자세 정의
 const POSTURE_TYPES = {
   good: { name: '바른 자세', color: '#10b981' },
   left: { name: '좌측 쏠림 (다리 꼬기)', color: '#f59e0b' },
@@ -14,14 +14,12 @@ function App() {
   const [todayDate, setTodayDate] = useState('');
   const [currentPosture, setCurrentPosture] = useState('good');
   
-  // 모달 상태 ('daily': 일별, 'monthly': 월별, 'calibrate': 측정, 'dailyDetail': 일간세부, 'monthlyDetail': 월간세부, null: 닫힘)
+  // 모달 상태
   const [activeModal, setActiveModal] = useState(null);
-
-  // [추가] 캘리브레이션 단계 및 세부 데이터 선택 상태
   const [calibStep, setCalibStep] = useState(0);
   const [selectedDetail, setSelectedDetail] = useState(null);
 
-  // Cloudflare Tunnel 주소 관리 (원본 유지)
+  // Cloudflare Tunnel 주소 관리
   const [serverUrl, setServerUrl] = useState(() => 
     localStorage.getItem('chair_server_url') || localStorage.getItem('chair_pi_ip') || ''
   );
@@ -29,31 +27,51 @@ function App() {
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  // 1. 일별 지난 기록 (UI 시뮬레이션을 위해 최다 자세와 피드백 항목 임시 추가)
+  // 8채널 압력 센서 및 착석 상태
+  const [pressures, setPressures] = useState([0, 0, 0, 0, 0, 0, 0, 0]);
+  const [isSitting, setIsSitting] = useState(false);
+
+  // 일별 지난 기록
   const [historyScores, setHistoryScores] = useState([
     { date: '2026년 9월 7일', score: 88, sitTime: '5시간 40분', topPosture: '바른 자세', feedback: '의사결정나무 AI 분석 결과, 전체적으로 바른 자세를 잘 유지했습니다. 우측 쏠림이 12% 감지되었으니 짝다리 짚는 습관만 주의하세요.' },
     { date: '2026년 9월 6일', score: 74, sitTime: '6시간 10분', topPosture: '우측 쏠림 (다리 꼬기)', feedback: '의사결정나무 분석 결과, 3번과 6번 압력센서(우측 허벅지)에 하중이 집중되었습니다. 오른쪽 다리를 꼬는 습관이 있습니다.' },
     { date: '2026년 9월 5일', score: 92, sitTime: '4시간 50분', topPosture: '바른 자세', feedback: '매우 훌륭합니다! 의사결정나무 모델이 감지한 불량 자세 비율이 10% 미만입니다.' },
-    { date: '2026년 9월 4일', score: 68, sitTime: '7시간 05분', topPosture: '거북목 / 상체 숙임', feedback: '전방 1,2,3번 센서에 압력이 과도합니다. 모니터가 너무 낮거나 멀리 있는지 확인해 보세요.' },
+    { date: '2026년 9월 4일', score: 68, sitTime: '7시간 05분', topPosture: '거북목 / 상체 숙임', feedback: '전방 센서에 압력이 과도합니다. 모니터가 너무 낮거나 멀리 있는지 확인해 보세요.' },
     { date: '2026년 9월 3일', score: 85, sitTime: '5시간 15분', topPosture: '바른 자세', feedback: '양호한 자세입니다. 다만 착석 시간이 길어지고 있으니 1시간마다 스트레칭을 권장합니다.' },
   ]);
 
-  // 2. 월별 평균 점수 (UI 시뮬레이션을 위해 최다 자세와 피드백 항목 임시 추가)
+  // 월별 평균 점수
   const [monthlyScores, setMonthlyScores] = useState([
     { month: '2026년 8월', score: 86, avgSitTime: '5시간 30분', topPosture: '바른 자세', feedback: '8월 한 달간 의사결정나무 데이터 분석 결과, 전월 대비 골반 불균형 수치가 15% 개선되었습니다.' },
     { month: '2026년 7월', score: 78, avgSitTime: '6시간 15분', topPosture: '우측 쏠림 (다리 꼬기)', feedback: '7월은 우측 쏠림이 잦았습니다. 우측 골반 하중이 평균 40% 이상 높게 측정되었습니다.' },
-    { month: '2026년 6월', score: 82, avgSitTime: '5시간 50분', topPosture: '바른 자세', feedback: '무난한 한 달이었습니다. 앞으로 걸터앉는 자세(18%)만 조금 더 줄여보세요.' },
-    { month: '2026년 5월', score: 64, avgSitTime: '7시간 10분', topPosture: '거북목 / 상체 숙임', feedback: '5월은 시험 기간 등의 영향으로 상체를 크게 숙이는 거북목 자세가 가장 많았습니다. 의식적으로 등받이에 기대세요.' },
+    { month: '2026년 6월', score: 82, avgSitTime: '5시간 50분', topPosture: '바른 자세', feedback: '무난한 한 달이었습니다. 앞으로 걸터앉는 자세만 조금 더 줄여보세요.' },
+    { month: '2026년 5월', score: 64, avgSitTime: '7시간 10분', topPosture: '거북목 / 상체 숙임', feedback: '5월은 시험 기간 등의 영향으로 상체를 크게 숙이는 거북목 자세가 가장 많았습니다.' },
     { month: '2026년 4월', score: 72, avgSitTime: '6시간 05분', topPosture: '좌측 쏠림 (다리 꼬기)', feedback: '좌측 쏠림이 잦았습니다. 왼쪽으로 턱을 괴거나 다리를 꼬는 습관을 주의하세요.' },
     { month: '2026년 3월', score: 91, avgSitTime: '4시간 40분', topPosture: '바른 자세', feedback: '완벽에 가까운 자세 밸런스를 유지한 달입니다!' },
   ]);
 
-  // 오늘 누적된 각 자세별 시간 (원본 유지)
+  // 오늘 누적된 각 자세별 시간
   const [postureSeconds, setPostureSeconds] = useState({
     good: 180, left: 20, right: 15, forward: 25, slouch: 10,
   });
 
-  // 오늘 날짜 갱신 (원본 유지)
+  // 빨간색 원 크기 및 진하기 계산 로직
+  const getCircleStyle = (val) => {
+    const rawVal = val || 0;
+    const ratio = Math.min(Math.max(rawVal / 1023, 0), 1);
+    const size = 20 + ratio * 42; // 지름: 20px ~ 62px
+    const opacity = 0.15 + ratio * 0.85; // 투명도: 0.15 ~ 1.0
+
+    return {
+      width: `${size}px`,
+      height: `${size}px`,
+      backgroundColor: `rgba(239, 68, 68, ${opacity.toFixed(2)})`, // 빨간색 계열
+      boxShadow: ratio > 0.5 ? `0 0 ${Math.round(ratio * 12)}px rgba(239, 68, 68, 0.5)` : 'none',
+      ratio: Math.round(ratio * 100),
+    };
+  };
+
+  // 오늘 날짜 갱신
   useEffect(() => {
     const updateDate = () => {
       const now = new Date();
@@ -67,7 +85,7 @@ function App() {
     return () => clearInterval(dateTimer);
   }, []);
 
-  // 주소 정규화 및 저장 핸들러 (원본 유지)
+  // 주소 정규화 및 저장
   const handleSaveUrl = (e) => {
     e.preventDefault();
     let clean = inputUrl.trim();
@@ -84,7 +102,7 @@ function App() {
     setIsUrlModalOpen(false);
   };
 
-  // 실시간 백엔드 통신 & 미연결 시 자동 시뮬레이션 (원본 유지)
+  // 실시간 통신 및 폴백
   useEffect(() => {
     const keys = Object.keys(POSTURE_TYPES);
     const dataTimer = setInterval(async () => {
@@ -95,6 +113,8 @@ function App() {
             const data = await response.json();
             if (data.currentPosture) setCurrentPosture(data.currentPosture);
             if (data.postureSeconds) setPostureSeconds(data.postureSeconds);
+            if (data.pressures) setPressures(data.pressures);
+            if (data.is_sitting !== undefined) setIsSitting(data.is_sitting);
             setIsConnected(true);
             return;
           }
@@ -102,15 +122,25 @@ function App() {
           setIsConnected(false);
         }
       }
+
+      // 오프라인 모의 시뮬레이션
       const isGood = Math.random() < 0.7;
       const detected = isGood ? 'good' : keys[Math.floor(Math.random() * keys.length)];
       setCurrentPosture(detected);
       setPostureSeconds((prev) => ({ ...prev, [detected]: prev[detected] + 1 }));
+      setIsSitting(true);
+
+      if (detected === 'good') setPressures([940, 950, 1010, 960, 1010, 1015, 940, 945]);
+      else if (detected === 'left') setPressures([970, 965, 970, 1020, 970, 960, 1020, 965]);
+      else if (detected === 'right') setPressures([940, 950, 1020, 960, 1020, 1020, 950, 1020]);
+      else if (detected === 'forward') setPressures([830, 880, 840, 1010, 860, 990, 1015, 1015]);
+      else setPressures([960, 960, 960, 970, 965, 955, 1020, 1020]);
     }, 1000);
+
     return () => clearInterval(dataTimer);
   }, [serverUrl]);
 
-  // 라즈베리파이 DB 통신 (원본 유지)
+  // DB 기록 통신
   useEffect(() => {
     if (!serverUrl) return;
     fetch(`${serverUrl}/api/history`)
@@ -124,7 +154,7 @@ function App() {
       .catch(() => {});
   }, [serverUrl, activeModal]);
 
-  // 통계 계산 (원본 유지)
+  // 통계 계산
   const totalSeconds = Object.values(postureSeconds).reduce((a, b) => a + b, 0);
   const postureStats = Object.keys(POSTURE_TYPES).map((key) => {
     const sec = postureSeconds[key];
@@ -134,7 +164,6 @@ function App() {
 
   const healthScore = totalSeconds > 0 ? Math.round((postureSeconds.good / totalSeconds) * 100) : 100;
 
-  // 도넛 차트 계산 (원본 유지)
   let cumulativePercent = 0;
   const gradientParts = postureStats.map((stat) => {
     const start = cumulativePercent;
@@ -160,7 +189,6 @@ function App() {
 
   const getDisplayUrl = (url) => url ? url.replace(/^https?:\/\//, '') : '';
 
-  // [추가] AI 측정(캘리브레이션) 버튼 핸들러
   const handleCalibrate = () => {
     if (calibStep >= 3) {
       setActiveModal(null);
@@ -203,7 +231,6 @@ function App() {
             <button className="monthly-btn" onClick={() => setActiveModal('monthly')}>
               📅 월별 평균 점수
             </button>
-            {/* [추가] 바른 자세 측정 버튼 */}
             <button 
               style={{ background: '#4263eb', color: '#fff', border: 'none', fontWeight: 'bold', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }} 
               onClick={() => { setActiveModal('calibrate'); setCalibStep(0); }}
@@ -214,7 +241,7 @@ function App() {
         </div>
       </header>
 
-      {/* 2. 현재 상태 안내 띠 (원본 유지) */}
+      {/* 2. 현재 상태 안내 띠 */}
       <div className="current-status-banner">
         <span>현재 감지 상태: </span>
         <strong style={{ color: POSTURE_TYPES[currentPosture].color }}>
@@ -222,7 +249,7 @@ function App() {
         </strong>
       </div>
 
-      {/* 3. 본문: 원형 차트 & 상세 통계 (원본 유지) */}
+      {/* 3. 본문: 원형 차트 & 상세 통계 */}
       <div className="main-content">
         <div className="chart-section">
           <h3>오늘의 자세 비율</h3>
@@ -263,7 +290,167 @@ function App() {
         </div>
       </div>
 
-      {/* 4. 의자 주소 설정 모달 (원본 유지) */}
+      {/* 4. 8채널 FSR 압력 센서 2D 의자 히트맵 (빨간색 가변 원 모드) */}
+      <div className="bottom-section">
+        <div className="bottom-card">
+          <div className="card-header">
+            <div>
+              <h3>실시간 압력 분포 히트맵 (8채널 FSR)</h3>
+              <p className="card-subtext">압력이 높아질수록 붉은 원이 크고 진해집니다 (MCP3008 ADC 0~1023)</p>
+            </div>
+            <div className="sitting-status-tag">
+              <span className={`status-pill ${isSitting ? 'sitting' : 'empty'}`}>
+                {isSitting ? '착석 감지됨' : '빈 의자'}
+              </span>
+            </div>
+          </div>
+
+          <div className="heatmap-layout">
+            {/* 실제 의자 방석 센서 배치 (7,8 / 4,5,6 / 1,2,3) */}
+            <div className="chair-visual-container">
+              <div className="seat-front-label">▲ 허벅지 / 무릎 방향 (전방)</div>
+
+              <div className="actual-seat-cushion">
+                {/* 1열: 전방 (사진 7번, 8번 -> 채널 6, 7) */}
+                <div className="sensor-row front-row">
+                  {[
+                    { ch: 6, label: '7번 (전방 좌)' },
+                    { ch: 7, label: '8번 (전방 우)' }
+                  ].map((s) => {
+                    const circle = getCircleStyle(pressures[s.ch]);
+                    return (
+                      <div key={s.ch} className="sensor-node">
+                        <span className="node-id">{s.label}</span>
+                        <div className="circle-socket">
+                          <div className="pressure-circle" style={{
+                            width: circle.width,
+                            height: circle.height,
+                            backgroundColor: circle.backgroundColor,
+                            boxShadow: circle.boxShadow
+                          }}></div>
+                        </div>
+                        <strong className="node-val">{pressures[s.ch]}</strong>
+                        <span className="node-percent">{circle.ratio}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 2열: 중앙 (사진 4번, 5번, 6번 -> 채널 3, 4, 5) */}
+                <div className="sensor-row center-row">
+                  {[
+                    { ch: 3, label: '4번 (중앙 좌)' },
+                    { ch: 4, label: '5번 (중앙)' },
+                    { ch: 5, label: '6번 (중앙 우)' }
+                  ].map((s) => {
+                    const circle = getCircleStyle(pressures[s.ch]);
+                    return (
+                      <div key={s.ch} className="sensor-node">
+                        <span className="node-id">{s.label}</span>
+                        <div className="circle-socket">
+                          <div className="pressure-circle" style={{
+                            width: circle.width,
+                            height: circle.height,
+                            backgroundColor: circle.backgroundColor,
+                            boxShadow: circle.boxShadow
+                          }}></div>
+                        </div>
+                        <strong className="node-val">{pressures[s.ch]}</strong>
+                        <span className="node-percent">{circle.ratio}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 3열: 후방 (사진 1번, 2번, 3번 -> 채널 0, 1, 2) */}
+                <div className="sensor-row rear-row">
+                  {[
+                    { ch: 0, label: '1번 (후방 좌)' },
+                    { ch: 1, label: '2번 (후방 중)' },
+                    { ch: 2, label: '3번 (후방 우)' }
+                  ].map((s) => {
+                    const circle = getCircleStyle(pressures[s.ch]);
+                    return (
+                      <div key={s.ch} className="sensor-node">
+                        <span className="node-id">{s.label}</span>
+                        <div className="circle-socket">
+                          <div className="pressure-circle" style={{
+                            width: circle.width,
+                            height: circle.height,
+                            backgroundColor: circle.backgroundColor,
+                            boxShadow: circle.boxShadow
+                          }}></div>
+                        </div>
+                        <strong className="node-val">{pressures[s.ch]}</strong>
+                        <span className="node-percent">{circle.ratio}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="seat-rear-label">▼ 등받이 방향 (후방)</div>
+            </div>
+
+            {/* 우측: 범례 및 총 압력 통계 */}
+            <div className="heatmap-sidebar">
+              <div className="pressure-summary-box">
+                <span className="summary-title">전체 압력 총합</span>
+                <div className="total-val-row">
+                  <span className="total-num">{pressures.reduce((a, b) => a + b, 0)}</span>
+                  <span className="threshold-info">/ 착석 기준 2500</span>
+                </div>
+                
+                <div className="threshold-bar-bg">
+                  <div 
+                    className="threshold-bar-fill"
+                    style={{ 
+                      width: `${Math.min((pressures.reduce((a, b) => a + b, 0) / 8184) * 100, 100)}%`,
+                      backgroundColor: isSitting ? '#ef4444' : '#94a3b8'
+                    }}
+                  ></div>
+                  <div className="threshold-marker" title="착석 기준선 (2500)" style={{ left: `${(2500 / 8184) * 100}%` }}></div>
+                </div>
+                <div className="threshold-caption">
+                  <span>0</span>
+                  <span className="marker-text">▲ 기준치(2500)</span>
+                  <span>8184</span>
+                </div>
+              </div>
+
+              {/* 붉은 원 크기/진하기 범례 */}
+              <div className="legend-box">
+                <span className="legend-title">원 크기 &amp; 농도 가이드</span>
+                <div className="circle-legend-list">
+                  <div className="circle-legend-item">
+                    <div className="legend-circle-sample sample-high"></div>
+                    <div>
+                      <strong>강한 압력 (750 ~ 1023)</strong>
+                      <p>원 크기 최대(62px), 붉은색 100% 진함</p>
+                    </div>
+                  </div>
+                  <div className="circle-legend-item">
+                    <div className="legend-circle-sample sample-mid"></div>
+                    <div>
+                      <strong>중간 압력 (300 ~ 749)</strong>
+                      <p>중간 크기, 연한 붉은색</p>
+                    </div>
+                  </div>
+                  <div className="circle-legend-item">
+                    <div className="legend-circle-sample sample-low"></div>
+                    <div>
+                      <strong>약한 접촉 / 미접촉 (0 ~ 299)</strong>
+                      <p>최소 크기(20px), 매우 연함</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 모달 1: 의자 주소 설정 */}
       {isUrlModalOpen && (
         <div className="modal-overlay" onClick={() => setIsUrlModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -282,7 +469,7 @@ function App() {
         </div>
       )}
 
-      {/* 5. 일별 지난 자세점수 모달 (수정: 세부 데이터 버튼 추가) */}
+      {/* 모달 2: 일별 지난 자세점수 */}
       {activeModal === 'daily' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -321,7 +508,7 @@ function App() {
         </div>
       )}
 
-      {/* 6. 월별 평균 점수 모달 (수정: 세부 데이터 버튼 추가) */}
+      {/* 모달 3: 월별 평균 점수 */}
       {activeModal === 'monthly' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -360,7 +547,7 @@ function App() {
         </div>
       )}
 
-      {/* 7. [신규] AI 측정 (캘리브레이션) 모달 */}
+      {/* 모달 4: AI 측정 모달 */}
       {activeModal === 'calibrate' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
@@ -383,7 +570,7 @@ function App() {
         </div>
       )}
 
-      {/* 8. [신규] 일간 세부 데이터 및 AI 피드백 모달 */}
+      {/* 모달 5: 일간 세부 데이터 */}
       {activeModal === 'dailyDetail' && selectedDetail && (
         <div className="modal-overlay" onClick={() => setActiveModal('daily')}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -409,7 +596,7 @@ function App() {
         </div>
       )}
 
-      {/* 9. [신규] 월간 세부 데이터 및 AI 피드백 모달 */}
+      {/* 모달 6: 월간 세부 데이터 */}
       {activeModal === 'monthlyDetail' && selectedDetail && (
         <div className="modal-overlay" onClick={() => setActiveModal('monthly')}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -434,7 +621,6 @@ function App() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
