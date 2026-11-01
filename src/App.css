@@ -58,7 +58,6 @@ body {
   margin: 6px 0 4px 0;
   font-size: 24px;
   font-weight: 800;
-  color: #0f172a;
 }
 
 .sub-info {
@@ -274,7 +273,294 @@ h3 {
   margin-top: 3px;
 }
 
-/* 모달 스타일 */
+/* ==========================================
+   하단 2D 의자 붉은 원 히트맵 스타일
+   ========================================== */
+.bottom-section {
+  margin-top: 20px;
+  margin-bottom: 40px;
+}
+
+.bottom-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+}
+
+.card-subtext {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.sitting-status-tag {
+  display: flex;
+  align-items: center;
+}
+
+.status-pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.status-pill.sitting {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.status-pill.empty {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.heatmap-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+  margin-top: 20px;
+  align-items: center;
+}
+
+.chair-visual-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background-color: #f8fafc;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.seat-front-label, .seat-rear-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: -0.2px;
+}
+
+.actual-seat-cushion {
+  width: 100%;
+  max-width: 350px;
+  background: white;
+  border: 2px solid #cbd5e1;
+  border-radius: 28px 28px 18px 18px;
+  padding: 16px 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.sensor-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.front-row {
+  justify-content: space-around;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.center-row, .rear-row {
+  justify-content: space-between;
+}
+
+.sensor-node {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background-color: #ffffff;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.node-id {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.circle-socket {
+  width: 66px;
+  height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0;
+}
+
+.pressure-circle {
+  border-radius: 50%;
+  transition: width 0.3s ease, height 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.node-val {
+  font-size: 14px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.node-percent {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* 사이드바 게이지 및 범례 */
+.heatmap-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pressure-summary-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.summary-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.total-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 6px 0 10px 0;
+}
+
+.total-num {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.threshold-info {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.threshold-bar-bg {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: visible;
+}
+
+.threshold-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.threshold-marker {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 16px;
+  background-color: #ef4444;
+}
+
+.threshold-caption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+
+.marker-text {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.legend-box {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.legend-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.circle-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.circle-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.circle-legend-item strong {
+  font-size: 12px;
+  color: #1e293b;
+  display: block;
+}
+
+.circle-legend-item p {
+  margin: 2px 0 0 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.legend-circle-sample {
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sample-high {
+  width: 28px;
+  height: 28px;
+  background-color: rgba(239, 68, 68, 1.0);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.sample-mid {
+  width: 20px;
+  height: 20px;
+  background-color: rgba(239, 68, 68, 0.5);
+}
+
+.sample-low {
+  width: 14px;
+  height: 14px;
+  background-color: rgba(239, 68, 68, 0.18);
+}
+
+/* ==========================================
+   모달 공통 스타일
+   ========================================== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -338,12 +624,6 @@ h3 {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.ip-help-text {
-  font-size: 12px;
-  color: #94a3b8;
-  margin: 8px 0 20px 0;
-}
-
 .history-list {
   display: flex;
   flex-direction: column;
@@ -382,17 +662,6 @@ h3 {
 .history-sit-time {
   font-size: 12px;
   color: #94a3b8;
-}
-
-.monthly-risk-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.risk-text-label {
-  font-size: 12px;
-  color: #64748b;
 }
 
 .risk-tag {
@@ -461,6 +730,10 @@ h3 {
   }
 
   .main-content {
+    grid-template-columns: 1fr;
+  }
+
+  .heatmap-layout {
     grid-template-columns: 1fr;
   }
 }
