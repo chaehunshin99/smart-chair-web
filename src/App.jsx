@@ -61,7 +61,7 @@ function App() {
   const getCircleStyle = (val) => {
     const rawVal = val || 0;
     const ratio = Math.min(Math.max(rawVal / 1023, 0), 1);
-    const size = 18 + ratio * 36; // 높이 최적화를 위해 최대 54px로 살짝 조정
+    const size = 18 + ratio * 36;
     const opacity = 0.15 + ratio * 0.85;
 
     return {
@@ -106,7 +106,7 @@ function App() {
     setIsUrlModalOpen(false);
   };
 
-  // 실시간 백엔드 통신 (미연결 시 더미데이터 완전 방지)
+  // 실시간 백엔드 통신
   useEffect(() => {
     const dataTimer = setInterval(async () => {
       if (serverUrl) {
@@ -180,6 +180,33 @@ function App() {
     return `${s}초`;
   };
 
+  // 라즈베리파이 app.py의 ST7920 LCD 출력 텍스트 완벽 동기화 로직
+  const getLcdScreenText = () => {
+    if (!isConnected) {
+      return { line1: 'Smart Chair', line2: 'Starting AI...' };
+    }
+    if (!isSitting) {
+      return { line1: 'Chair Empty', line2: 'Ready...' };
+    }
+    let enPosture = 'Good';
+    if (currentPosture === 'left') enPosture = 'Left Tilt';
+    else if (currentPosture === 'right') enPosture = 'Right Tilt';
+    else if (currentPosture === 'forward') enPosture = 'Forward';
+    else if (currentPosture === 'slouch') enPosture = 'Slouch';
+
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+    return {
+      line1: `Pos: ${enPosture}`,
+      line2: `Time: ${timeStr}`
+    };
+  };
+
+  const lcdText = getLcdScreenText();
+
   const getRiskInfo = (score) => {
     if (score >= 80) return { label: '안전', class: 'risk-safe' };
     if (score >= 70) return { label: '주의', class: 'risk-warning' };
@@ -200,7 +227,7 @@ function App() {
 
   return (
     <div className="dashboard">
-      {/* 1열: 좌측 제어 & 점수 카드 */}
+      {/* 1열: 좌측 제어, 실시간 점수 & [신규] 하드웨어 ST7920 LCD 미니 뷰 */}
       <div className="dashboard-col col-left">
         <header className="header-card">
           <div className="status-indicators">
@@ -246,9 +273,23 @@ function App() {
             <strong style={{ color: '#94a3b8' }}>의자 연결 대기 중 (신호 없음)</strong>
           )}
         </div>
+
+        {/* 📟 [신규] 실제 의자의 ST7920 128x64 그래픽 LCD 화면 연동 미니 뷰 */}
+        <div className="lcd-display-card">
+          <div className="lcd-header">
+            <span className="lcd-title">ST7920 그래픽 LCD 화면</span>
+            <span className="lcd-model-badge">128x64 SPI</span>
+          </div>
+          <div className="lcd-screen-frame">
+            <div className="lcd-bezel">
+              <div className="lcd-pixel-line">{lcdText.line1}</div>
+              <div className="lcd-pixel-line">{lcdText.line2}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* 2열: [통합] 자세 비율 & 상세 통계 한눈에 보기 카드 */}
+      {/* 2열: [통합] 자세 비율 도넛 차트 & 상세 통계 한눈에 보기 (빈 공간 제거) */}
       <div className="dashboard-col col-center">
         <div className="unified-posture-card">
           <div className="card-title-bar">
@@ -292,7 +333,7 @@ function App() {
         </div>
       </div>
 
-      {/* 3열: [상단 승격] 실시간 압력 분포 히트맵 카드 */}
+      {/* 3열: 실시간 압력 분포 히트맵 카드 */}
       <div className="dashboard-col col-right">
         <div className="heatmap-main-card">
           <div className="card-title-bar">
@@ -305,7 +346,6 @@ function App() {
             </span>
           </div>
 
-          {/* 의자 방석 UI */}
           <div className="chair-visual-container">
             <div className="seat-front-label">▲ 전방 (무릎 / 허벅지)</div>
 
@@ -388,7 +428,6 @@ function App() {
             <div className="seat-rear-label">▼ 후방 (등받이 쪽)</div>
           </div>
 
-          {/* 하단 요약 게이지 & 미니 범례 */}
           <div className="heatmap-compact-footer">
             <div className="pressure-total-wrap">
               <span className="total-title">압력 합계: <strong>{pressures.reduce((a, b) => a + b, 0)}</strong> / 기준 2500</span>
