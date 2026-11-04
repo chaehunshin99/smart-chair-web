@@ -1,24 +1,31 @@
+/* =========================================================
+   🌐 전역 기본 스타일 및 리셋
+   ========================================================= */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
   background-color: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Pretendard', sans-serif;
   color: #1e293b;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* =========================================================
-   🖥️ 대시보드 3열 제로 스크롤 레이아웃 (가로 화면)
+   🖥️ 대시보드 3열 레이아웃
    ========================================================= */
 .dashboard {
   max-width: 1440px;
   margin: 16px auto;
   padding: 0 16px;
-  box-sizing: border-box;
   display: grid;
   grid-template-columns: 310px 1fr 1.15fr;
   gap: 16px;
-  align-items: start; /* 강제 세로 늘림 방지 */
+  align-items: start;
 }
 
 .dashboard-col {
@@ -54,10 +61,10 @@ body {
 }
 
 /* =========================================================
-   1열: 좌측 제어, 실시간 점수 & ST7920 LCD 카드
+   1열: 좌측 제어, 점수 & ST7920 LCD 카드
    ========================================================= */
 .header-card {
-  background: white;
+  background: #ffffff;
   border-radius: 16px;
   padding: 16px 14px;
   display: flex;
@@ -116,9 +123,8 @@ body {
   margin: 2px 0;
   font-size: 20px;
   font-weight: 800;
-  color: #0f172a !important;
+  color: #0f172a;
   white-space: nowrap;
-  word-break: keep-all;
 }
 
 .sub-info {
@@ -130,7 +136,6 @@ body {
 
 .score-badge {
   width: 100%;
-  box-sizing: border-box;
   text-align: right;
   background: #f0fdf4;
   padding: 10px 16px;
@@ -166,9 +171,8 @@ body {
   margin-top: 4px;
 }
 
-.ip-btn, .history-btn, .monthly-btn, .calib-btn {
+.ip-btn, .history-btn, .calib-btn {
   width: 100%;
-  box-sizing: border-box;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   color: #334155;
@@ -178,8 +182,6 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
-  word-break: keep-all;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,20 +198,14 @@ body {
   color: #0f172a;
 }
 
-.history-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-  color: #0f172a;
-}
-
-.monthly-btn {
+.history-btn {
   border-color: #bfdbfe;
-  background: #eff6ff;
+  background-color: #eff6ff;
   color: #1d4ed8;
 }
 
-.monthly-btn:hover {
-  background: #dbeafe;
+.history-btn:hover {
+  background-color: #dbeafe;
   border-color: #93c5fd;
   color: #1e40af;
 }
@@ -225,7 +221,7 @@ body {
 }
 
 .current-status-banner {
-  background: white;
+  background: #ffffff;
   padding: 12px 16px;
   border-radius: 12px;
   font-size: 13px;
@@ -235,9 +231,9 @@ body {
   white-space: nowrap;
 }
 
-/* 📟 ST7920 그래픽 LCD 하드웨어 미니 뷰 카드 */
+/* ST7920 LCD 뷰 */
 .lcd-display-card {
-  background: white;
+  background: #ffffff;
   border-radius: 16px;
   padding: 14px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
@@ -276,7 +272,7 @@ body {
 }
 
 .lcd-bezel {
-  background: #004b97; /* ST7920 블루 백라이트 색상 */
+  background: #004b97;
   border: 2px solid #002d5c;
   border-radius: 4px;
   padding: 10px 12px;
@@ -297,15 +293,14 @@ body {
 }
 
 /* =========================================================
-   2열: [통합] 자세 비율 & 통계 (빈 공간 완전 밀착)
+   2열: 오늘의 자세 비율 & 도넛 차트
    ========================================================= */
 .unified-posture-card {
-  background: white;
+  background: #ffffff;
   border-radius: 16px;
   padding: 18px 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
 }
@@ -314,7 +309,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 6px 0 12px 0; /* 상하 여백 최소화 */
+  padding: 6px 0 12px 0;
 }
 
 .donut-chart {
@@ -331,7 +326,7 @@ body {
 .donut-hole {
   width: 95px;
   height: 95px;
-  background-color: white;
+  background-color: #ffffff;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
@@ -351,12 +346,11 @@ body {
   color: #10b981;
 }
 
-/* 도넛 차트 바로 밑으로 밀착 배치 */
 .compact-list {
   display: flex;
   flex-direction: column;
-  gap: 8px; /* 항목 간격 컴팩트화 */
-  margin-top: 4px; /* 기존 margin-top: auto 제거로 빈 공간 원천 차단 */
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .stat-item {
@@ -421,15 +415,14 @@ body {
 }
 
 /* =========================================================
-   3열: 8채널 FSR 압력 센서 붉은 원 히트맵
+   3열: 8채널 FSR 압력 센서 히트맵
    ========================================================= */
 .heatmap-main-card {
-  background: white;
+  background: #ffffff;
   border-radius: 16px;
   padding: 18px 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -439,7 +432,6 @@ body {
   margin: 2px 0 0 0;
   font-size: 11px;
   color: #64748b;
-  word-break: keep-all;
 }
 
 .status-pill {
@@ -462,7 +454,6 @@ body {
   border: 1px solid #cbd5e1;
 }
 
-/* 의자 방석 컨테이너 */
 .chair-visual-container {
   display: flex;
   flex-direction: column;
@@ -484,11 +475,10 @@ body {
 
 .actual-seat-cushion {
   width: 100%;
-  background: white;
+  background: #ffffff;
   border: 2px solid #cbd5e1;
   border-radius: 22px 22px 14px 14px;
   padding: 10px 8px;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -504,7 +494,6 @@ body {
 .front-row {
   justify-content: space-around;
   padding: 0 16px;
-  box-sizing: border-box;
 }
 
 .center-row, .rear-row {
@@ -551,7 +540,6 @@ body {
   color: #0f172a;
 }
 
-/* 히트맵 하단 게이지 및 미니 범례 */
 .heatmap-compact-footer {
   display: flex;
   flex-direction: column;
@@ -625,7 +613,7 @@ body {
 }
 
 .dot-high {
-  background-color: rgba(239, 68, 68, 1.0);
+  background-color: rgba(239, 68, 68, 1);
 }
 
 .dot-mid {
@@ -654,13 +642,12 @@ body {
 }
 
 .modal-content {
-  background: white;
+  background: #ffffff;
   width: 90%;
-  max-width: 440px;
+  max-width: 480px;
   border-radius: 18px;
   padding: 22px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  box-sizing: border-box;
 }
 
 .modal-header {
@@ -676,6 +663,7 @@ body {
   color: #94a3b8;
   cursor: pointer;
   padding: 4px 8px;
+  transition: color 0.15s ease;
 }
 
 .close-btn:hover {
@@ -686,12 +674,10 @@ body {
   font-size: 13px;
   color: #64748b;
   margin: 6px 0 16px 0;
-  word-break: keep-all;
 }
 
 .ip-input {
   width: 100%;
-  box-sizing: border-box;
   padding: 12px 14px;
   font-size: 15px;
   border: 1px solid #cbd5e1;
@@ -704,6 +690,27 @@ body {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+.modal-confirm-btn {
+  width: 100%;
+  background-color: #1e293b;
+  color: #ffffff;
+  border: none;
+  padding: 11px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.modal-confirm-btn:hover {
+  background-color: #0f172a;
+}
+
+/* =========================================================
+   📊 드릴다운(연/월/일) 리스트 및 컴포넌트 스타일
+   ========================================================= */
 .history-list {
   display: flex;
   flex-direction: column;
@@ -711,6 +718,24 @@ body {
   max-height: 280px;
   overflow-y: auto;
   padding-right: 4px;
+}
+
+.history-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.history-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .history-item {
@@ -733,7 +758,6 @@ body {
 .history-text {
   font-size: 14px;
   color: #1e293b;
-  word-break: keep-all;
 }
 
 .highlight-score {
@@ -772,26 +796,8 @@ body {
   border: 1px solid #fecaca;
 }
 
-.modal-confirm-btn {
-  width: 100%;
-  background-color: #1e293b;
-  color: white;
-  border: none;
-  padding: 11px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  white-space: nowrap;
-}
-
-.modal-confirm-btn:hover {
-  background-color: #0f172a;
-}
-
 /* =========================================================
-   📱 스마트폰 모바일 화면 미디어 쿼리 (가로 1024px 이하)
+   📱 반응형 모바일 (가로 1024px 이하)
    ========================================================= */
 @media (max-width: 1024px) {
   .dashboard {
