@@ -9,7 +9,8 @@ const POSTURE_TYPES = {
   slouch: { name: '뒤로 눕기 (슬라우칭)', color: '#8b5cf6' },
 };
 
-const DEFAULT_SERVER_URL = 'https://api.smart-chair-web.site';
+const BASE_DOMAIN = 'smart-chair-web.site';
+const DEFAULT_SERVER_URL = `https://api.${BASE_DOMAIN}`;
 
 // -------------------------------------------------------------
 // 📈 연/월/일별 점수 추이를 즉시 렌더링하는 인라인 SVG 차트 컴포넌트
@@ -80,12 +81,31 @@ function App() {
   const [selectedDetail, setSelectedDetail] = useState(null);
   const calibTimerRef = useRef(null);
 
+  // -------------------------------------------------------------
+  // 🔐 서브도메인 인증 & 보안 잠금 상태 관리
+  // -------------------------------------------------------------
   const [serverUrl, setServerUrl] = useState(() =>
-    localStorage.getItem('chair_server_url') || DEFAULT_SERVER_URL
+    localStorage.getItem('chair_server_url') || ''
   );
-  const [inputUrl, setInputUrl] = useState('');
-  const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [subdomain, setSubdomain] = useState(() => {
+    const saved = localStorage.getItem('chair_server_url') || '';
+    const match = saved.match(/https?:\/\/([^.]+)\./);
+    return match ? match[1] : '';
+  });
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('chair_server_url'));
   const [isConnected, setIsConnected] = useState(false);
+
+  // 인증 모달 상태: null | 'login' | 'register'
+  const [authModal, setAuthModal] = useState(null);
+  const [authSubdomain, setAuthSubdomain] = useState('');
+  const [authPin, setAuthPin] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isDeviceLocked, setIsDeviceLocked] = useState(false);
+
+  // 계정 삭제(초기화) 모달 상태
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletePin, setDeletePin] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const [pressures, setPressures] = useState([0, 0, 0, 0, 0, 0, 0, 0]);
   const [isSitting, setIsSitting] = useState(false);
@@ -148,23 +168,12 @@ function App() {
     return () => clearInterval(dateTimer);
   }, []);
 
-  const handleSaveUrl = (e) => {
-    e.preventDefault();
-    let clean = inputUrl.trim();
-    if (clean) {
-      if (!clean.startsWith('http://') && !clean.startsWith('https://')) clean = `https://${clean}`;
-      if (clean.endsWith('/')) clean = clean.slice(0, -1);
-    } else {
-      clean = DEFAULT_SERVER_URL;
-    }
-    localStorage.setItem('chair_server_url', clean);
-    setServerUrl(clean);
-    setIsUrlModalOpen(false);
-  };
-
+  // -------------------------------------------------------------
+  // 🔄 실시간 데이터 폴링 (로그인된 상태에서만 통신)
+  // -------------------------------------------------------------
   useEffect(() => {
     const dataTimer = setInterval(async () => {
-      if (serverUrl) {
+      if (serverUrl && isLoggedIn) {
         try {
           const response = await fetch(`${serverUrl}/api/live-status`, { signal: AbortSignal.timeout(900) });
           if (response.ok) {
@@ -189,15 +198,15 @@ function App() {
       }
     }, 1000);
     return () => clearInterval(dataTimer);
-  }, [serverUrl]);
+  }, [serverUrl, isLoggedIn]);
 
   useEffect(() => {
-    if (!serverUrl) return;
+    if (!serverUrl || !isLoggedIn) return;
     fetch(`${serverUrl}/api/history/years`)
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setYearlyData(d); })
       .catch(() => {});
-  }, [serverUrl, activeModal]);
+  }, [serverUrl, isLoggedIn, activeModal]);
 
   const totalSeconds = Object.values(postureSeconds).reduce((a, b) => a + b, 0);
   const postureStats = Object.keys(POSTURE_TYPES).map((key) => {
@@ -243,6 +252,145 @@ function App() {
   };
 
   const lcdText = getLcdScreenText();
+
+  // -------------------------------------------------------------
+  // 🔐 로그인 & 회원가입 & 계정 삭제 핸들러
+  // -------------------------------------------------------------
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    const cleanSub = authSubdomain.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+
+    if (!cleanSub || authPin.length !== 4) {
+      setAuthError('서브도메인과 4자리 숫자 PIN을 모두 올바르게 입력해주세요.');
+      return;
+    }
+
+    const targetUrl = `https://${cleanSub}.${BASE_DOMAIN}`;
+
+    try {
+      const res = await fetch(`${targetUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subdomain: cleanSub, pin: authPin }),
+      });
+      const result = await res.json();
+
+      if (res.status === 403 && result.is_locked) {
+        setIsDeviceLocked(true);
+        setAuthError(result.message || '🚨 비밀번호 5회 연속 오류로 기기가 영구 잠금되었습니다.');
+        return;
+      }
+
+      if (!res.ok || !result.success) {
+        setAuthError(result.message || '로그인에 실패했습니다.');
+        return;
+      }
+
+      // 로그인 성공
+      localStorage.setItem('chair_server_url', targetUrl);
+      setServerUrl(targetUrl);
+      setSubdomain(cleanSub);
+      setIsLoggedIn(true);
+      setAuthModal(null);
+      setAuthPin('');
+      setIsDeviceLocked(false);
+    } catch {
+      setAuthError(`[${cleanSub}.${BASE_DOMAIN}] 서버에 연결할 수 없습니다. Cloudflare 터널 및 라즈베리파이 상태를 확인해주세요.`);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    const cleanSub = authSubdomain.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+
+    if (!cleanSub || authPin.length !== 4) {
+      setAuthError('서브도메인과 4자리 숫자 PIN을 모두 올바르게 입력해주세요.');
+      return;
+    }
+
+    const targetUrl = `https://${cleanSub}.${BASE_DOMAIN}`;
+
+    try {
+      const res = await fetch(`${targetUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subdomain: cleanSub, pin: authPin }),
+      });
+      const result = await res.json();
+
+      if (res.status === 403 && result.already_registered) {
+        setAuthError(`⚠️ 이 기기에는 이미 [${result.registered_subdomain}] 계정이 등록되어 있습니다. 중복 가입은 불가합니다.`);
+        return;
+      }
+
+      if (!res.ok || !result.success) {
+        setAuthError(result.message || '회원가입에 실패했습니다.');
+        return;
+      }
+
+      alert(`🎉 [${cleanSub}] 서브도메인이 정상 등록되었습니다! 바로 로그인해주세요.`);
+      setAuthModal('login');
+      setAuthPin('');
+    } catch {
+      setAuthError(`[${cleanSub}.${BASE_DOMAIN}] 서버에 연결할 수 없습니다. Cloudflare 터널 상태를 확인해주세요.`);
+    }
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('현재 연결된 스마트 의자 계정에서 로그아웃하시겠습니까?')) {
+      localStorage.removeItem('chair_server_url');
+      setServerUrl('');
+      setSubdomain('');
+      setIsLoggedIn(false);
+      setIsConnected(false);
+      setIsSitting(false);
+    }
+  };
+
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    setDeleteError('');
+
+    if (deletePin.length !== 4) {
+      setDeleteError('현재 설정된 4자리 PIN 번호를 입력해주세요.');
+      return;
+    }
+
+    if (!window.confirm('정말로 이 기기의 등록 계정을 삭제하시겠습니까?\n삭제 후에도 과거 누적된 자세 측정 데이터는 유지되며 새 서브도메인으로 가입할 수 있습니다.')) {
+      return;
+    }
+
+    const targetUrl = serverUrl || `https://${authSubdomain || subdomain}.${BASE_DOMAIN}`;
+
+    try {
+      const res = await fetch(`${targetUrl}/api/auth/delete-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: deletePin }),
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        setDeleteError(result.message || '계정 삭제에 실패했습니다.');
+        return;
+      }
+
+      alert('🗑️ 기기 계정이 초기화되었습니다. 새로운 서브도메인으로 회원가입할 수 있습니다.');
+      localStorage.removeItem('chair_server_url');
+      setServerUrl('');
+      setSubdomain('');
+      setIsLoggedIn(false);
+      setIsConnected(false);
+      setIsSitting(false);
+      setIsDeleteModalOpen(false);
+      setDeletePin('');
+      setAuthModal('register');
+    } catch {
+      setDeleteError('서버와 통신할 수 없습니다. 연결 상태를 확인해주세요.');
+    }
+  };
 
   // 3회 분할 정밀 캘리브레이션 제어 로직
   const handleStartCalibration = () => {
@@ -336,6 +484,7 @@ function App() {
         .catch(() => {});
     }
   };
+
   return (
     <div className="dashboard">
       {/* ==========================================
@@ -348,7 +497,7 @@ function App() {
               ● {isConnected ? '모니터링 활성' : '연결 대기 중'}
             </span>
             <span className={`connection-badge ${isConnected ? 'online' : 'offline'}`}>
-              {isConnected ? `연결됨 (${getDisplayUrl(serverUrl)})` : `연결 대기중 (${getDisplayUrl(serverUrl)})`}
+              {isConnected ? `연결됨 (${getDisplayUrl(serverUrl)})` : `연결 대기중 (${getDisplayUrl(serverUrl) || '기기 미연결'})`}
             </span>
           </div>
 
@@ -360,10 +509,39 @@ function App() {
             <div className="score-number">{healthScore}<span className="score-unit">점</span></div>
           </div>
 
-          <div className="button-group">
-            <button className="ip-btn" onClick={() => { setInputUrl(serverUrl); setIsUrlModalOpen(true); }}>
-              ⚙️ {serverUrl ? '의자 도메인 변경' : '의자 도메인 연결'}
-            </button>
+          <div className="button-group auth-status-bar">
+            {isLoggedIn ? (
+              <>
+                <button className="ip-btn logged-in" onClick={handleLogout}>
+                  🔓 [{subdomain}] 로그아웃
+                </button>
+                <button
+                  type="button"
+                  className="account-reset-link"
+                  onClick={() => {
+                    setDeleteError('');
+                    setDeletePin('');
+                    setIsDeleteModalOpen(true);
+                  }}
+                >
+                  기기 등록 해제 (계정 삭제)
+                </button>
+              </>
+            ) : (
+              <button
+                className="ip-btn"
+                onClick={() => {
+                  setAuthSubdomain(subdomain || '');
+                  setAuthPin('');
+                  setAuthError('');
+                  setIsDeviceLocked(false);
+                  setAuthModal('login');
+                }}
+              >
+                🔒 로그인 / 회원가입
+              </button>
+            )}
+
             {/* 단일 통합 버튼: 지난 자세점수 보기 */}
             <button className="history-btn" onClick={handleOpenYearView}>
               📊 지난 자세점수 보기
@@ -527,6 +705,200 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* =========================================================
+          🔐 서브도메인 로그인 / 회원가입 모달
+          ========================================================= */}
+      {authModal && (
+        <div className="modal-overlay" onClick={() => setAuthModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0 }}>
+                {authModal === 'login' ? '스마트 의자 로그인' : '새 기기 서브도메인 등록'}
+              </h3>
+              <button className="close-btn" onClick={() => setAuthModal(null)}>✕</button>
+            </div>
+
+            <p className="modal-subtext">
+              {authModal === 'login'
+                ? '라즈베리파이에 등록된 서브도메인과 4자리 PIN을 입력하세요.'
+                : '스마트 의자에 연결할 서브도메인과 4자리 PIN을 새로 등록합니다.'}
+            </p>
+
+            {/* 영구 잠금 상태 경고 배너 */}
+            {isDeviceLocked && (
+              <div className="lockout-alert-banner">
+                <strong>🔒 기기 접근이 영구 차단되었습니다</strong>
+                비밀번호 5회 연속 오류로 기기가 보호 모드에 들어갔습니다.<br />
+                소유자 터미널(SSH)에서 잠금을 해제해야 다시 시도할 수 있습니다.
+              </div>
+            )}
+
+            {/* 일반 에러 메시지 알림 박스 */}
+            {authError && !isDeviceLocked && (
+              <div className="auth-alert-box error">
+                <div>{authError}</div>
+                {authError.includes('이미') && (
+                  <button
+                    type="button"
+                    className="account-reset-link"
+                    style={{ marginTop: '6px', color: '#b91c1c' }}
+                    onClick={() => {
+                      setAuthModal(null);
+                      setDeleteError('');
+                      setDeletePin('');
+                      setIsDeleteModalOpen(true);
+                    }}
+                  >
+                    기존 계정을 삭제하고 새로 등록하시겠습니까? ➔
+                  </button>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={authModal === 'login' ? handleLogin : handleRegister} className={isDeviceLocked ? 'form-disabled' : ''}>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>
+                  서브도메인 주소
+                </label>
+                <div className="subdomain-input-group">
+                  <input
+                    type="text"
+                    placeholder="예: chair01"
+                    value={authSubdomain}
+                    onChange={(e) => setAuthSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    disabled={isDeviceLocked}
+                    autoFocus
+                    required
+                  />
+                  <span className="subdomain-suffix-badge">.{BASE_DOMAIN}</span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>
+                  4자리 숫자 PIN 번호
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  className="ip-input pin-input"
+                  placeholder="••••"
+                  value={authPin}
+                  onChange={(e) => setAuthPin(e.target.value.replace(/[^0-9]/g, ''))}
+                  disabled={isDeviceLocked}
+                  required
+                />
+                {authModal === 'login' && (
+                  <div className="auth-switch-row" style={{ marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      className="auth-text-btn subtle"
+                      onClick={() => alert("보안을 위해 비밀번호 분실 시에는 라즈베리파이 터미널(SSH)에서 'python3 reset_pin.py' 명령어로만 재설정할 수 있습니다.")}
+                    >
+                      비밀번호를 잊으셨나요?
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="modal-confirm-btn"
+                disabled={isDeviceLocked}
+                style={{ background: authModal === 'login' ? '#2563eb' : '#10b981', color: '#fff' }}
+              >
+                {authModal === 'login' ? '스마트 의자 연결하기' : '서브도메인 계정 등록하기'}
+              </button>
+
+              <div className="auth-switch-row" style={{ marginTop: '14px', justifyContent: 'center' }}>
+                {authModal === 'login' ? (
+                  <button
+                    type="button"
+                    className="auth-text-btn"
+                    onClick={() => {
+                      setAuthModal('register');
+                      setAuthError('');
+                    }}
+                  >
+                    새로운 기기인가요? 서브도메인 등록 ➔
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="auth-text-btn"
+                    onClick={() => {
+                      setAuthModal('login');
+                      setAuthError('');
+                    }}
+                  >
+                    이미 계정이 있으신가요? 로그인으로 돌아가기 ➔
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          🗑️ 기기 계정 삭제 확인 모달
+          ========================================================= */}
+      {isDeleteModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsDeleteModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, color: '#dc2626' }}>기기 계정 등록 해제</h3>
+              <button className="close-btn" onClick={() => setIsDeleteModalOpen(false)}>✕</button>
+            </div>
+
+            <p className="modal-subtext">
+              현재 기기에 등록된 계정 정보를 삭제합니다.<br />
+              본인 확인을 위해 <strong>현재 설정된 4자리 PIN 번호</strong>를 입력해주세요.
+            </p>
+
+            {deleteError && (
+              <div className="auth-alert-box error" style={{ fontWeight: 'bold' }}>
+                ⚠️ {deleteError}
+              </div>
+            )}
+
+            <form onSubmit={handleDeleteAccount}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>
+                  기기 PIN 번호 확인
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  className="ip-input pin-input"
+                  placeholder="••••"
+                  value={deletePin}
+                  onChange={(e) => setDeletePin(e.target.value.replace(/[^0-9]/g, ''))}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="submit"
+                  style={{ flex: 1, backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '11px', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  계정 삭제 확인
+                </button>
+                <button
+                  type="button"
+                  style={{ flex: 1, backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '11px', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                  onClick={() => setIsDeleteModalOpen(false)}
+                >
+                  취소
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================
           📊 계층형 드릴다운 모달 (연별 ➔ 월별 ➔ 일별 + 즉시 표시 그래프)
@@ -706,25 +1078,6 @@ function App() {
               {selectedDetail.feedback || 'AI 피드백 데이터가 충분하지 않습니다.'}
             </div>
             <button className="modal-confirm-btn" style={{ marginTop: '16px' }} onClick={() => setActiveModal('history')}>목록으로 돌아가기</button>
-          </div>
-        </div>
-      )}
-
-      {/* 개인 스마트 의자 도메인 연결 설정 모달 */}
-      {isUrlModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsUrlModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>개인 스마트 의자 연결 설정</h3>
-              <button className="close-btn" onClick={() => setIsUrlModalOpen(false)}>✕</button>
-            </div>
-            <p className="modal-subtext">라즈베리파이의 Cloudflare Tunnel HTTPS 주소를 입력하세요.</p>
-            <form onSubmit={handleSaveUrl}>
-              <input type="text" className="ip-input" placeholder="예: api.smart-chair-web.site" value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} autoFocus />
-              <div className="modal-actions" style={{ marginTop: '14px' }}>
-                <button type="submit" className="modal-confirm-btn">연결 주소 저장</button>
-              </div>
-            </form>
           </div>
         </div>
       )}
