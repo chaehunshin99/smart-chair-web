@@ -11,18 +11,70 @@ const POSTURE_TYPES = {
 
 const DEFAULT_SERVER_URL = 'https://api.smart-chair-web.site';
 
+// -------------------------------------------------------------
+// 📈 별도 npm 설치 없이 즉시 렌더링되는 경량 트렌드 그래프 컴포넌트
+// -------------------------------------------------------------
+function TrendChart({ data, xKey, yKey, unit = '점' }) {
+  if (!data || data.length === 0) {
+    return <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '12px' }}>표시할 그래프 데이터가 없습니다.</div>;
+  }
+
+  const width = 380;
+  const height = 130;
+  const padding = { top: 20, right: 20, bottom: 25, left: 30 };
+  const chartW = width - padding.left - padding.right;
+  const chartH = height - padding.top - padding.bottom;
+
+  const points = data.map((d, i) => {
+    const x = padding.left + (chartW / Math.max(data.length - 1, 1)) * i;
+    const yVal = Math.max(0, Math.min(100, d[yKey]));
+    const y = padding.top + chartH - (yVal / 100) * chartH;
+    return { x, y, label: d[xKey], val: d[yKey] };
+  });
+
+  const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+
+  return (
+    <div style={{ background: '#f8fafc', padding: '10px 8px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
+      <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '4px', textAlign: 'right' }}>
+        단위: {unit} (기준: 0~100)
+      </div>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
+        {/* 기준 가이드라인 (50점, 100점) */}
+        <line x1={padding.left} y1={padding.top} x2={width - padding.right} y2={padding.top} stroke="#e2e8f0" strokeDasharray="3 3" />
+        <line x1={padding.left} y1={padding.top + chartH / 2} x2={width - padding.right} y2={padding.top + chartH / 2} stroke="#e2e8f0" strokeDasharray="3 3" />
+        <line x1={padding.left} y1={padding.top + chartH} x2={width - padding.right} y2={padding.top + chartH} stroke="#cbd5e1" />
+
+        {/* 꺾은선 트렌드 그래프 */}
+        {points.length > 1 && (
+          <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={polylinePoints} />
+        )}
+
+        {/* 데이터 포인트 원 및 수치 라벨 */}
+        {points.map((p, idx) => (
+          <g key={idx}>
+            <circle cx={p.x} cy={p.y} r="4" fill="#2563eb" stroke="#ffffff" strokeWidth="1.5" />
+            <text x={p.x} y={p.y - 7} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#1e293b">{p.val}</text>
+            <text x={p.x} y={height - 6} textAnchor="middle" fontSize="9" fill="#64748b">{p.label}</text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 function App() {
   const [todayDate, setTodayDate] = useState('');
   const [currentPosture, setCurrentPosture] = useState('good');
-  
+
   // 모달 및 캘리브레이션 상태
   const [activeModal, setActiveModal] = useState(null);
   const [isCalibrating, setIsCalibrating] = useState(false);
-  const [calibProgress, setCalibProgress] = useState(0); // 0 ~ 100% 진행률
-  const [calibStep, setCalibStep] = useState(0); // 0(1차), 1(2차), 2(3차) 측정 단계
-  const [calibSnapshots, setCalibSnapshots] = useState([]); // 1,2,3차의 모든 측정 데이터를 누적 저장
+  const [calibProgress, setCalibProgress] = useState(0);
+  const [calibStep, setCalibStep] = useState(0);
+  const [calibSnapshots, setCalibSnapshots] = useState([]);
   const [selectedDetail, setSelectedDetail] = useState(null);
-  const calibTimerRef = useRef(null); // 타이머 제어용 참조
+  const calibTimerRef = useRef(null);
 
   const [serverUrl, setServerUrl] = useState(() => 
     localStorage.getItem('chair_server_url') || DEFAULT_SERVER_URL
@@ -33,20 +85,35 @@ function App() {
 
   const [pressures, setPressures] = useState([0, 0, 0, 0, 0, 0, 0, 0]);
   const [isSitting, setIsSitting] = useState(false);
-  const pressuresRef = useRef([0, 0, 0, 0, 0, 0, 0, 0]); // 실시간 측정 캡처용 최신값 참조
+  const pressuresRef = useRef([0, 0, 0, 0, 0, 0, 0, 0]);
 
-  const [historyScores, setHistoryScores] = useState([
-    { date: '2026년 9월 7일', score: 88, sitTime: '5시간 40분', topPosture: '바른 자세', feedback: '의사결정나무 AI 분석 결과, 전체적으로 바른 자세를 잘 유지했습니다.' },
-    { date: '2026년 9월 6일', score: 74, sitTime: '6시간 10분', topPosture: '우측 쏠림 (다리 꼬기)', feedback: '의사결정나무 분석 결과, 오른쪽 다리를 꼬는 습관이 있습니다.' },
-    { date: '2026년 9월 5일', score: 92, sitTime: '4시간 50분', topPosture: '바른 자세', feedback: '매우 훌륭합니다! 불량 자세 비율이 10% 미만입니다.' },
-    { date: '2026년 9월 4일', score: 68, sitTime: '7시간 05분', topPosture: '거북목 / 상체 숙임', feedback: '전방 센서에 압력이 과도합니다. 모니터 높이를 확인해 보세요.' },
-    { date: '2026년 9월 3일', score: 85, sitTime: '5시간 15분', topPosture: '바른 자세', feedback: '양호한 자세입니다. 1시간마다 스트레칭을 권장합니다.' },
+  // -------------------------------------------------------------
+  // 🗂️ 계층형 드릴다운 (연도 ➔ 월 ➔ 일) 상태 관리
+  // -------------------------------------------------------------
+  const [drillLevel, setDrillLevel] = useState('year'); // 'year' | 'month' | 'day'
+  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedMonth, setSelectedMonth] = useState('9');
+
+  // 1. 연도별 기본 통계 데이터
+  const [yearlyData, setYearlyData] = useState([
+    { year: '2025년', score: 81, avgSitTime: '5시간 10분', topPosture: '바른 자세', feedback: '시스템 도입 초기 양호한 평균 점수를 기록했습니다.' },
+    { year: '2026년', score: 86, avgSitTime: '5시간 45분', topPosture: '바른 자세', feedback: '전년 대비 바른 자세 유지율이 5% 향상되었습니다.' },
   ]);
 
-  const [monthlyScores, setMonthlyScores] = useState([
-    { month: '2026년 8월', score: 86, avgSitTime: '5시간 30분', topPosture: '바른 자세', feedback: '전월 대비 골반 불균형 수치가 15% 개선되었습니다.' },
-    { month: '2026년 7월', score: 78, avgSitTime: '6시간 15분', topPosture: '우측 쏠림 (다리 꼬기)', feedback: '우측 골반 하중이 평균 40% 이상 높게 측정되었습니다.' },
-    { month: '2026년 6월', score: 82, avgSitTime: '5시간 50분', topPosture: '바른 자세', feedback: '걸터앉는 자세만 조금 더 줄여보세요.' },
+  // 2. 월별 기본 통계 데이터 (선택된 연도 하위)
+  const [monthlyData, setMonthlyData] = useState([
+    { month: '7월', score: 78, avgSitTime: '6시간 15분', topPosture: '우측 쏠림 (다리 꼬기)', feedback: '우측 골반 하중이 평균 40% 이상 높게 측정되었습니다.' },
+    { month: '8월', score: 86, avgSitTime: '5시간 30분', topPosture: '바른 자세', feedback: '골반 불균형 수치가 전월 대비 15% 개선되었습니다.' },
+    { month: '9월', score: 88, avgSitTime: '5시간 40분', topPosture: '바른 자세', feedback: '의사결정나무 AI 분석 결과, 최적의 밸런스를 유지하고 있습니다.' },
+  ]);
+
+  // 3. 일별 기본 통계 데이터 (선택된 월 하위)
+  const [dailyData, setDailyData] = useState([
+    { day: '3일', fullDate: '2026년 9월 3일', score: 85, sitTime: '5시간 15분', topPosture: '바른 자세', feedback: '양호한 자세입니다. 1시간마다 가벼운 스트레칭을 권장합니다.' },
+    { day: '4일', fullDate: '2026년 9월 4일', score: 68, sitTime: '7시간 05분', topPosture: '거북목 / 상체 숙임', feedback: '전방 센서 압력이 과도합니다. 모니터 높이를 조정해 보세요.' },
+    { day: '5일', fullDate: '2026년 9월 5일', score: 92, sitTime: '4시간 50분', topPosture: '바른 자세', feedback: '매우 훌륭합니다! 불량 자세 비율이 10% 미만입니다.' },
+    { day: '6일', fullDate: '2026년 9월 6일', score: 74, sitTime: '6시간 10분', topPosture: '우측 쏠림 (다리 꼬기)', feedback: '오른쪽 다리를 꼬는 자세가 자주 감지되었습니다.' },
+    { day: '7일', fullDate: '2026년 9월 7일', score: 88, sitTime: '5시간 40분', topPosture: '바른 자세', feedback: '전체적으로 고른 압력 분포를 유지했습니다.' },
   ]);
 
   const [postureSeconds, setPostureSeconds] = useState({
@@ -102,7 +169,7 @@ function App() {
             if (data.postureSeconds) setPostureSeconds(data.postureSeconds);
             if (data.pressures) {
               setPressures(data.pressures);
-              pressuresRef.current = data.pressures; // 실시간 캡처용 참조 업데이트
+              pressuresRef.current = data.pressures;
             }
             if (data.is_sitting !== undefined) setIsSitting(data.is_sitting);
             setIsConnected(true);
@@ -120,10 +187,10 @@ function App() {
     return () => clearInterval(dataTimer);
   }, [serverUrl]);
 
+  // 백엔드 API 연동 (연/월/일 히스토리)
   useEffect(() => {
     if (!serverUrl) return;
-    fetch(`${serverUrl}/api/history`).then(r => r.json()).then(d => { if (Array.isArray(d)) setHistoryScores(d); }).catch(()=>{});
-    fetch(`${serverUrl}/api/monthly`).then(r => r.json()).then(d => { if (Array.isArray(d)) setMonthlyScores(d); }).catch(()=>{});
+    fetch(`${serverUrl}/api/history/years`).then(r => r.json()).then(d => { if (Array.isArray(d)) setYearlyData(d); }).catch(()=>{});
   }, [serverUrl, activeModal]);
 
   const totalSeconds = Object.values(postureSeconds).reduce((a, b) => a + b, 0);
@@ -172,51 +239,40 @@ function App() {
   const lcdText = getLcdScreenText();
 
   // -------------------------------------------------------------
-  // [완벽 업데이트] 3회 분할 x 3초 정밀 측정 (0.1초 간격, 회당 30번 캡처)
+  // 3회 분할 정밀 캘리브레이션 제어 로직 (그대로 유지)
   // -------------------------------------------------------------
   const handleStartCalibration = () => {
-    if (isCalibrating) return; // 중복 실행 방지
+    if (isCalibrating) return;
     setIsCalibrating(true);
     setCalibProgress(0);
 
     const stepSnapshots = [];
     let count = 0;
-    const totalCount = 30; // 0.1초(100ms) 간격 * 30회 = 3초
+    const totalCount = 30;
 
     calibTimerRef.current = setInterval(() => {
-      // 0.1초마다 현재 센서 배열 캡처
       stepSnapshots.push([...pressuresRef.current]);
       count++;
       setCalibProgress(Math.round((count / totalCount) * 100));
 
-      // 3초 측정 완료 시
       if (count >= totalCount) {
         clearInterval(calibTimerRef.current);
-        
-        // 현재까지 누적된 전체 데이터에 방금 측정한 30개 추가
         const updatedSnapshots = [...calibSnapshots, ...stepSnapshots];
         setCalibSnapshots(updatedSnapshots);
         setIsCalibrating(false);
 
-        // 측정 단계(Step) 넘기기 또는 학습 완료
-        if (calibStep === 0) {
-          setCalibStep(1); // 1차 완료 -> 2차 대기
-        } else if (calibStep === 1) {
-          setCalibStep(2); // 2차 완료 -> 3차 대기
-        } else if (calibStep === 2) {
-          finishCalibration(updatedSnapshots); // 3차 완료 -> AI 학습(서버 전송)
-        }
+        if (calibStep === 0) setCalibStep(1);
+        else if (calibStep === 1) setCalibStep(2);
+        else if (calibStep === 2) finishCalibration(updatedSnapshots);
       }
-    }, 100); // 100ms (0.1초)
+    }, 100);
   };
 
   const finishCalibration = async (finalSnapshots) => {
-    // 총 90회(3회x30번) 측정값의 평균 계산
     const avgSnapshot = finalSnapshots[0].map((_, colIndex) =>
       Math.round(finalSnapshots.reduce((acc, row) => acc + row[colIndex], 0) / finalSnapshots.length)
     );
 
-    // 평균 배열을 서버(app.py)로 전송하여 AI 기준점 재학습
     try {
       await fetch(`${serverUrl}/api/calibrate`, {
         method: 'POST',
@@ -224,15 +280,12 @@ function App() {
         body: JSON.stringify({ good_baseline: avgSnapshot })
       });
       alert('✅ [3/3] 모든 정밀 측정이 완료되었습니다!\n(최종 평균 데이터가 AI 모델에 성공적으로 적용되었습니다)');
-    } catch (error) {
+    } catch {
       alert('⚠️ 측정은 끝났으나 서버로 전송하지 못했습니다.\n네트워크 상태를 확인해주세요.');
     }
-
-    // 모달 초기화
     closeCalibModal();
   };
 
-  // 모달 강제 종료 시 초기화 함수
   const closeCalibModal = () => {
     if (calibTimerRef.current) clearInterval(calibTimerRef.current);
     setIsCalibrating(false);
@@ -241,7 +294,6 @@ function App() {
     setCalibSnapshots([]);
     setActiveModal(null);
   };
-  // -------------------------------------------------------------
 
   const getRiskInfo = (score) => {
     if (score >= 80) return { label: '안전', class: 'risk-safe' };
@@ -250,9 +302,42 @@ function App() {
   };
 
   const getDisplayUrl = (url) => url ? url.replace(/^https?:\/\//, '') : '';
+  // 드릴다운 단계 전환 핸들러
+  const handleOpenYearView = () => {
+    setDrillLevel('year');
+    setActiveModal('history');
+  };
 
+  const handleSelectYear = (yearStr) => {
+    const rawYear = yearStr.replace(/[^0-9]/g, '');
+    setSelectedYear(rawYear);
+    setDrillLevel('month');
+    // 실제 백엔드 연동 시:
+    if (serverUrl) {
+      fetch(`${serverUrl}/api/history/months?year=${rawYear}`)
+        .then(r => r.json())
+        .then(d => { if (Array.isArray(d)) setMonthlyData(d); })
+        .catch(() => {});
+    }
+  };
+
+  const handleSelectMonth = (monthStr) => {
+    const rawMonth = monthStr.replace(/[^0-9]/g, '');
+    setSelectedMonth(rawMonth);
+    setDrillLevel('day');
+    // 실제 백엔드 연동 시:
+    if (serverUrl) {
+      fetch(`${serverUrl}/api/history/days?year=${selectedYear}&month=${rawMonth}`)
+        .then(r => r.json())
+        .then(d => { if (Array.isArray(d)) setDailyData(d); })
+        .catch(() => {});
+    }
+  };
   return (
     <div className="dashboard">
+      {/* ==========================================
+          1열: 제어 패널, 점수 및 LCD 미니 뷰
+          ========================================== */}
       <div className="dashboard-col col-left">
         <header className="header-card">
           <div className="status-indicators">
@@ -276,11 +361,9 @@ function App() {
             <button className="ip-btn" onClick={() => { setInputUrl(serverUrl); setIsUrlModalOpen(true); }}>
               ⚙️ {serverUrl ? '의자 도메인 변경' : '의자 도메인 연결'}
             </button>
-            <button className="history-btn" onClick={() => setActiveModal('daily')}>
+            {/* 단일 통합 버튼: 지난 자세점수 보기 */}
+            <button className="history-btn" onClick={handleOpenYearView}>
               📊 지난 자세점수 보기
-            </button>
-            <button className="monthly-btn" onClick={() => setActiveModal('monthly')}>
-              📅 월별 평균 점수
             </button>
             <button className="calib-btn" onClick={() => { setCalibStep(0); setCalibSnapshots([]); setActiveModal('calibrate'); }}>
               🎯 바른 자세 0점 설정 (AI)
@@ -311,6 +394,9 @@ function App() {
         </div>
       </div>
 
+      {/* ==========================================
+          2열: 실시간 도넛 차트 및 통계
+          ========================================== */}
       <div className="dashboard-col col-center">
         <div className="unified-posture-card">
           <div className="card-title-bar">
@@ -351,6 +437,9 @@ function App() {
         </div>
       </div>
 
+      {/* ==========================================
+          3열: 8채널 FSR 압력 센서 히트맵
+          ========================================== */}
       <div className="dashboard-col col-right">
         <div className="heatmap-main-card">
           <div className="card-title-bar">
@@ -436,6 +525,151 @@ function App() {
         </div>
       </div>
 
+      {/* =========================================================
+          📊 계층형 드릴다운 모달 (연별 ➔ 월별 ➔ 일별 + 즉시 표시 그래프)
+          ========================================================= */}
+      {activeModal === 'history' && (
+        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="modal-content" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+            {/* 모달 상단 헤더 및 뒤로가기 */}
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {drillLevel === 'month' && (
+                  <button style={{ border: 'none', background: 'none', fontSize: '13px', cursor: 'pointer', color: '#2563eb', fontWeight: 'bold', padding: 0 }} onClick={() => setDrillLevel('year')}>
+                    ◀ 연별로
+                  </button>
+                )}
+                {drillLevel === 'day' && (
+                  <button style={{ border: 'none', background: 'none', fontSize: '13px', cursor: 'pointer', color: '#2563eb', fontWeight: 'bold', padding: 0 }} onClick={() => setDrillLevel('month')}>
+                    ◀ 월별로
+                  </button>
+                )}
+                <h3 style={{ margin: 0 }}>
+                  {drillLevel === 'year' && '연도별 평균 점수'}
+                  {drillLevel === 'month' && `${selectedYear}년 월별 평균 점수`}
+                  {drillLevel === 'day' && `${selectedYear}년 ${selectedMonth}월 일별 평균 점수`}
+                </h3>
+              </div>
+              <button className="close-btn" onClick={() => setActiveModal(null)}>✕</button>
+            </div>
+
+            <p className="modal-subtext">
+              {drillLevel === 'year' && '연도별 종합 점수 변화 추이와 세부 기록'}
+              {drillLevel === 'month' && `${selectedYear}년도의 월간 자세 점수 변화 추이`}
+              {drillLevel === 'day' && `${selectedYear}년 ${selectedMonth}월 매일 자정에 기록된 최종 점수`}
+            </p>
+
+            {/* 1단계: 연도별 뷰 */}
+            {drillLevel === 'year' && (
+              <>
+                <TrendChart data={yearlyData} xKey="year" yKey="score" />
+                <div className="history-list">
+                  {yearlyData.map((item, index) => {
+                    const risk = getRiskInfo(item.score);
+                    return (
+                      <div key={index} className="history-item">
+                        <div className="history-info">
+                          <span className="history-text"><strong>{item.year}</strong> 평균 <span className="highlight-score">{item.score}점</span></span>
+                          <span className="history-sit-time">(일평균 착석: {item.avgSitTime})</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
+                          <button style={{ padding: '5px 8px', fontSize: '11px', borderRadius: '6px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 'bold', whiteSpace: 'nowrap' }} onClick={() => handleSelectYear(item.year)}>
+                            월별 평균 점수 보기 📅
+                          </button>
+                          <button style={{ padding: '5px 6px', fontSize: '11px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => { setSelectedDetail({ title: `${item.year} 세부 리포트`, ...item }); setActiveModal('historyDetail'); }}>
+                            세부 🔍
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* 2단계: 월별 뷰 */}
+            {drillLevel === 'month' && (
+              <>
+                <TrendChart data={monthlyData} xKey="month" yKey="score" />
+                <div className="history-list">
+                  {monthlyData.map((item, index) => {
+                    const risk = getRiskInfo(item.score);
+                    return (
+                      <div key={index} className="history-item">
+                        <div className="history-info">
+                          <span className="history-text"><strong>{item.month}</strong> 평균 <span className="highlight-score">{item.score}점</span></span>
+                          <span className="history-sit-time">(일평균 착석: {item.avgSitTime})</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
+                          <button style={{ padding: '5px 8px', fontSize: '11px', borderRadius: '6px', border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#15803d', cursor: 'pointer', fontWeight: 'bold', whiteSpace: 'nowrap' }} onClick={() => handleSelectMonth(item.month)}>
+                            일별 평균 점수 보기 🗓️
+                          </button>
+                          <button style={{ padding: '5px 6px', fontSize: '11px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => { setSelectedDetail({ title: `${selectedYear}년 ${item.month} 세부 리포트`, ...item }); setActiveModal('historyDetail'); }}>
+                            세부 🔍
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* 3단계: 일별 뷰 */}
+            {drillLevel === 'day' && (
+              <>
+                <TrendChart data={dailyData} xKey="day" yKey="score" />
+                <div className="history-list">
+                  {dailyData.map((item, index) => {
+                    const risk = getRiskInfo(item.score);
+                    return (
+                      <div key={index} className="history-item">
+                        <div className="history-info">
+                          <span className="history-text"><strong>{item.fullDate || item.day}</strong> <span className="highlight-score">{item.score}점</span></span>
+                          <span className="history-sit-time">(총 착석: {item.sitTime})</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
+                          <button style={{ padding: '5px 8px', fontSize: '11px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => { setSelectedDetail({ title: `${item.fullDate || item.day} 세부 리포트`, ...item }); setActiveModal('historyDetail'); }}>
+                            세부 데이터 🔍
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <button className="modal-confirm-btn" style={{ marginTop: '16px' }} onClick={() => setActiveModal(null)}>닫기</button>
+          </div>
+        </div>
+      )}
+
+      {/* 세부 데이터 모달 (연/월/일 공통) */}
+      {activeModal === 'historyDetail' && selectedDetail && (
+        <div className="modal-overlay" onClick={() => setActiveModal('history')}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedDetail.title || '세부 리포트'}</h3>
+              <button className="close-btn" onClick={() => setActiveModal('history')}>✕</button>
+            </div>
+            <div style={{ background: '#f8f9fa', padding: '14px', borderRadius: '10px', margin: '14px 0', border: '1px solid #e9ecef' }}>
+              <p style={{ margin: '0 0 6px 0', fontSize: '13px' }}><strong>가장 빈번했던 자세:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{selectedDetail.topPosture || '데이터 없음'}</span></p>
+              <p style={{ margin: 0, fontSize: '13px' }}><strong>착석 시간:</strong> {selectedDetail.avgSitTime || selectedDetail.sitTime || '기록 없음'}</p>
+            </div>
+            <div style={{ background: '#e6fcf5', padding: '14px', borderRadius: '10px', fontSize: '13px', lineHeight: '1.6', border: '1px solid #b2f2bb' }}>
+              <strong style={{ display: 'block', marginBottom: '6px', color: '#0ca678' }}>🤖 의사결정나무 AI 피드백</strong>
+              {selectedDetail.feedback || 'AI 피드백 데이터가 충분하지 않습니다.'}
+            </div>
+            <button className="modal-confirm-btn" style={{ marginTop: '16px' }} onClick={() => setActiveModal('history')}>목록으로 돌아가기</button>
+          </div>
+        </div>
+      )}
+
+      {/* Cloudflare Tunnel URL 설정 모달 */}
       {isUrlModalOpen && (
         <div className="modal-overlay" onClick={() => setIsUrlModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -446,7 +680,7 @@ function App() {
             <p className="modal-subtext">라즈베리파이의 Cloudflare Tunnel HTTPS 주소를 입력하세요.</p>
             <form onSubmit={handleSaveUrl}>
               <input type="text" className="ip-input" placeholder="예: api.smart-chair-web.site" value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} autoFocus />
-              <div className="modal-actions">
+              <div className="modal-actions" style={{ marginTop: '14px' }}>
                 <button type="submit" className="modal-confirm-btn">연결 주소 저장</button>
               </div>
             </form>
@@ -454,67 +688,7 @@ function App() {
         </div>
       )}
 
-      {activeModal === 'daily' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>과거 자세점수 기록</h3>
-              <button className="close-btn" onClick={() => setActiveModal(null)}>✕</button>
-            </div>
-            <p className="modal-subtext">하루 착석 종료 시점의 최종 점수</p>
-            <div className="history-list">
-              {historyScores.map((record, index) => {
-                const risk = getRiskInfo(record.score);
-                return (
-                  <div key={index} className="history-item">
-                    <div className="history-info">
-                      <span className="history-text"><strong>{record.date}</strong> 자세점수 <span className="highlight-score">{record.score}점</span></span>
-                      <span className="history-sit-time">(착석 시간: {record.sitTime})</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
-                      <button style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => { setSelectedDetail(record); setActiveModal('dailyDetail'); }}>세부 데이터 🔍</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <button className="modal-confirm-btn" onClick={() => setActiveModal(null)}>닫기</button>
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'monthly' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>월별 평균 점수 및 위험도</h3>
-              <button className="close-btn" onClick={() => setActiveModal(null)}>✕</button>
-            </div>
-            <p className="modal-subtext">한 달간 누적된 일일 점수의 평균</p>
-            <div className="history-list">
-              {monthlyScores.map((item, index) => {
-                const risk = getRiskInfo(item.score);
-                return (
-                  <div key={index} className="history-item">
-                    <div className="history-info">
-                      <span className="history-text"><strong>{item.month}</strong> 자세점수 <span className="highlight-score">{item.score}점</span></span>
-                      <span className="history-sit-time">(일평균 착석: {item.avgSitTime})</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
-                      <button style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => { setSelectedDetail(item); setActiveModal('monthlyDetail'); }}>세부 데이터 🔍</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <button className="modal-confirm-btn" onClick={() => setActiveModal(null)}>닫기</button>
-          </div>
-        </div>
-      )}
-
-      {/* 🎯 3단계 분할 정밀 캘리브레이션 모달 UI */}
+      {/* 바른 자세 0점 설정 모달 */}
       {activeModal === 'calibrate' && (
         <div className="modal-overlay" onClick={closeCalibModal}>
           <div className="modal-content" style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
@@ -534,7 +708,6 @@ function App() {
               }
             </p>
 
-            {/* 측정 진행률 게이지 바 */}
             <div className="calib-progress-container" style={{ width: '100%', height: '14px', backgroundColor: '#e2e8f0', borderRadius: '7px', overflow: 'hidden', margin: '0 0 20px 0' }}>
               <div 
                 className="calib-progress-fill" 
@@ -555,49 +728,11 @@ function App() {
                 ? "측정 진행 중..." 
                 : calibStep === 0 
                   ? "▶️ 1차 측정 시작 (3초)"
-                  : calibStep === 1
-                    ? "▶️ 2차 측정 시작 (3초)"
+                  : calibStep === 1 
+                    ? "▶️ 2차 측정 시작 (3초)" 
                     : "▶️ 3차 측정 및 AI 학습 완료 (3초)"
               }
             </button>
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'dailyDetail' && selectedDetail && (
-        <div className="modal-overlay" onClick={() => setActiveModal('daily')}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{selectedDetail.date} 세부 리포트</h3>
-              <button className="close-btn" onClick={() => setActiveModal('daily')}>✕</button>
-            </div>
-            <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '10px', marginBottom: '15px', border: '1px solid #e9ecef' }}>
-              <p style={{ margin: '0 0 8px 0', fontSize: '14px' }}><strong>이날 가장 많이 측정된 자세:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{selectedDetail.topPosture || '데이터 없음'}</span></p>
-            </div>
-            <div style={{ background: '#e6fcf5', padding: '15px', borderRadius: '10px', fontSize: '14px', lineHeight: '1.6', border: '1px solid #b2f2bb' }}>
-              <strong style={{ display: 'block', marginBottom: '8px', color: '#0ca678' }}>🤖 의사결정나무 AI 피드백</strong>
-              {selectedDetail.feedback || 'AI 피드백 데이터가 아직 충분하지 않습니다.'}
-            </div>
-            <button className="modal-confirm-btn" style={{ marginTop: '20px' }} onClick={() => setActiveModal('daily')}>목록으로 돌아가기</button>
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'monthlyDetail' && selectedDetail && (
-        <div className="modal-overlay" onClick={() => setActiveModal('monthly')}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{selectedDetail.month} 종합 리포트</h3>
-              <button className="close-btn" onClick={() => setActiveModal('monthly')}>✕</button>
-            </div>
-            <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '10px', marginBottom: '15px', border: '1px solid #e9ecef' }}>
-              <p style={{ margin: '0 0 8px 0', fontSize: '14px' }}><strong>이달 가장 잦았던 불량 자세:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{selectedDetail.topPosture || '데이터 없음'}</span></p>
-            </div>
-            <div style={{ background: '#e6fcf5', padding: '15px', borderRadius: '10px', fontSize: '14px', lineHeight: '1.6', border: '1px solid #b2f2bb' }}>
-              <strong style={{ display: 'block', marginBottom: '8px', color: '#0ca678' }}>🤖 의사결정나무 AI 종합 진단</strong>
-              {selectedDetail.feedback || 'AI 피드백 데이터가 아직 충분하지 않습니다.'}
-            </div>
-            <button className="modal-confirm-btn" style={{ marginTop: '20px' }} onClick={() => setActiveModal('monthly')}>목록으로 돌아가기</button>
           </div>
         </div>
       )}
