@@ -163,7 +163,7 @@ body {
   margin-left: 2px;
 }
 
-.button-group {
+.button-group, .auth-status-bar {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -196,6 +196,33 @@ body {
 .ip-btn:hover {
   background: #f1f5f9;
   color: #0f172a;
+}
+
+.ip-btn.logged-in {
+  color: #ef4444;
+  border-color: #fca5a5;
+  background-color: #fef2f2;
+}
+
+.ip-btn.logged-in:hover {
+  background-color: #fee2e2;
+}
+
+.account-reset-link {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+  align-self: center;
+  padding: 0;
+  margin-top: 2px;
+  transition: color 0.2s;
+}
+
+.account-reset-link:hover {
+  color: #ef4444;
 }
 
 .history-btn {
@@ -683,6 +710,7 @@ body {
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .ip-input:focus {
@@ -706,6 +734,128 @@ body {
 
 .modal-confirm-btn:hover {
   background-color: #0f172a;
+}
+
+/* =========================================================
+   🔐 서브도메인 인증 & 보안 잠금 UI 스타일
+   ========================================================= */
+.subdomain-input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.subdomain-input-group:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.subdomain-input-group input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: #1e293b;
+  min-width: 0;
+}
+
+.subdomain-suffix-badge {
+  background-color: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 12px 14px;
+  border-left: 1px solid #e2e8f0;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pin-input {
+  letter-spacing: 6px;
+  font-family: monospace;
+  font-size: 18px !important;
+  font-weight: bold;
+  text-align: center;
+}
+
+.lockout-alert-banner {
+  background: #fef2f2;
+  border: 1px solid #f87171;
+  color: #991b1b;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.lockout-alert-banner strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.auth-alert-box {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
+.auth-alert-box.error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.auth-switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.auth-text-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+
+.auth-text-btn:hover {
+  color: #1d4ed8;
+}
+
+.auth-text-btn.subtle {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.auth-text-btn.subtle:hover {
+  color: #334155;
+}
+
+.form-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: grayscale(40%);
 }
 
 /* =========================================================
