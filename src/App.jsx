@@ -12,11 +12,15 @@ const POSTURE_TYPES = {
 const DEFAULT_SERVER_URL = 'https://api.smart-chair-web.site';
 
 // -------------------------------------------------------------
-// 📈 별도 npm 설치 없이 즉시 렌더링되는 경량 트렌드 그래프 컴포넌트
+// 📈 연/월/일별 점수 추이를 즉시 렌더링하는 인라인 SVG 차트 컴포넌트
 // -------------------------------------------------------------
 function TrendChart({ data, xKey, yKey, unit = '점' }) {
   if (!data || data.length === 0) {
-    return <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '12px' }}>표시할 그래프 데이터가 없습니다.</div>;
+    return (
+      <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '12px' }}>
+        표시할 그래프 데이터가 없습니다.
+      </div>
+    );
   }
 
   const width = 380;
@@ -40,7 +44,7 @@ function TrendChart({ data, xKey, yKey, unit = '점' }) {
         단위: {unit} (기준: 0~100)
       </div>
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-        {/* 기준 가이드라인 (50점, 100점) */}
+        {/* 기준 가이드라인 */}
         <line x1={padding.left} y1={padding.top} x2={width - padding.right} y2={padding.top} stroke="#e2e8f0" strokeDasharray="3 3" />
         <line x1={padding.left} y1={padding.top + chartH / 2} x2={width - padding.right} y2={padding.top + chartH / 2} stroke="#e2e8f0" strokeDasharray="3 3" />
         <line x1={padding.left} y1={padding.top + chartH} x2={width - padding.right} y2={padding.top + chartH} stroke="#cbd5e1" />
@@ -76,7 +80,7 @@ function App() {
   const [selectedDetail, setSelectedDetail] = useState(null);
   const calibTimerRef = useRef(null);
 
-  const [serverUrl, setServerUrl] = useState(() => 
+  const [serverUrl, setServerUrl] = useState(() =>
     localStorage.getItem('chair_server_url') || DEFAULT_SERVER_URL
   );
   const [inputUrl, setInputUrl] = useState('');
@@ -100,14 +104,14 @@ function App() {
     { year: '2026년', score: 86, avgSitTime: '5시간 45분', topPosture: '바른 자세', feedback: '전년 대비 바른 자세 유지율이 5% 향상되었습니다.' },
   ]);
 
-  // 2. 월별 기본 통계 데이터 (선택된 연도 하위)
+  // 2. 월별 기본 통계 데이터
   const [monthlyData, setMonthlyData] = useState([
     { month: '7월', score: 78, avgSitTime: '6시간 15분', topPosture: '우측 쏠림 (다리 꼬기)', feedback: '우측 골반 하중이 평균 40% 이상 높게 측정되었습니다.' },
     { month: '8월', score: 86, avgSitTime: '5시간 30분', topPosture: '바른 자세', feedback: '골반 불균형 수치가 전월 대비 15% 개선되었습니다.' },
     { month: '9월', score: 88, avgSitTime: '5시간 40분', topPosture: '바른 자세', feedback: '의사결정나무 AI 분석 결과, 최적의 밸런스를 유지하고 있습니다.' },
   ]);
 
-  // 3. 일별 기본 통계 데이터 (선택된 월 하위)
+  // 3. 일별 기본 통계 데이터
   const [dailyData, setDailyData] = useState([
     { day: '3일', fullDate: '2026년 9월 3일', score: 85, sitTime: '5시간 15분', topPosture: '바른 자세', feedback: '양호한 자세입니다. 1시간마다 가벼운 스트레칭을 권장합니다.' },
     { day: '4일', fullDate: '2026년 9월 4일', score: 68, sitTime: '7시간 05분', topPosture: '거북목 / 상체 숙임', feedback: '전방 센서 압력이 과도합니다. 모니터 높이를 조정해 보세요.' },
@@ -187,10 +191,12 @@ function App() {
     return () => clearInterval(dataTimer);
   }, [serverUrl]);
 
-  // 백엔드 API 연동 (연/월/일 히스토리)
   useEffect(() => {
     if (!serverUrl) return;
-    fetch(`${serverUrl}/api/history/years`).then(r => r.json()).then(d => { if (Array.isArray(d)) setYearlyData(d); }).catch(()=>{});
+    fetch(`${serverUrl}/api/history/years`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setYearlyData(d); })
+      .catch(() => {});
   }, [serverUrl, activeModal]);
 
   const totalSeconds = Object.values(postureSeconds).reduce((a, b) => a + b, 0);
@@ -223,7 +229,7 @@ function App() {
   const getLcdScreenText = () => {
     if (!isConnected) return { line1: 'Smart Chair', line2: 'Starting AI...' };
     if (!isSitting) return { line1: 'Chair Empty', line2: 'Ready...' };
-    
+
     let enPosture = 'Good';
     if (currentPosture === 'left') enPosture = 'Left Tilt';
     else if (currentPosture === 'right') enPosture = 'Right Tilt';
@@ -238,9 +244,7 @@ function App() {
 
   const lcdText = getLcdScreenText();
 
-  // -------------------------------------------------------------
-  // 3회 분할 정밀 캘리브레이션 제어 로직 (그대로 유지)
-  // -------------------------------------------------------------
+  // 3회 분할 정밀 캘리브레이션 제어 로직
   const handleStartCalibration = () => {
     if (isCalibrating) return;
     setIsCalibrating(true);
@@ -302,6 +306,7 @@ function App() {
   };
 
   const getDisplayUrl = (url) => url ? url.replace(/^https?:\/\//, '') : '';
+
   // 드릴다운 단계 전환 핸들러
   const handleOpenYearView = () => {
     setDrillLevel('year');
@@ -312,7 +317,6 @@ function App() {
     const rawYear = yearStr.replace(/[^0-9]/g, '');
     setSelectedYear(rawYear);
     setDrillLevel('month');
-    // 실제 백엔드 연동 시:
     if (serverUrl) {
       fetch(`${serverUrl}/api/history/months?year=${rawYear}`)
         .then(r => r.json())
@@ -325,7 +329,6 @@ function App() {
     const rawMonth = monthStr.replace(/[^0-9]/g, '');
     setSelectedMonth(rawMonth);
     setDrillLevel('day');
-    // 실제 백엔드 연동 시:
     if (serverUrl) {
       fetch(`${serverUrl}/api/history/days?year=${selectedYear}&month=${rawMonth}`)
         .then(r => r.json())
@@ -356,7 +359,7 @@ function App() {
             <div className="score-label">실시간 자세 점수</div>
             <div className="score-number">{healthScore}<span className="score-unit">점</span></div>
           </div>
-          
+
           <div className="button-group">
             <button className="ip-btn" onClick={() => { setInputUrl(serverUrl); setIsUrlModalOpen(true); }}>
               ⚙️ {serverUrl ? '의자 도메인 변경' : '의자 도메인 연결'}
@@ -531,25 +534,12 @@ function App() {
       {activeModal === 'history' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-content" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
-            {/* 모달 상단 헤더 및 뒤로가기 */}
             <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {drillLevel === 'month' && (
-                  <button style={{ border: 'none', background: 'none', fontSize: '13px', cursor: 'pointer', color: '#2563eb', fontWeight: 'bold', padding: 0 }} onClick={() => setDrillLevel('year')}>
-                    ◀ 연별로
-                  </button>
-                )}
-                {drillLevel === 'day' && (
-                  <button style={{ border: 'none', background: 'none', fontSize: '13px', cursor: 'pointer', color: '#2563eb', fontWeight: 'bold', padding: 0 }} onClick={() => setDrillLevel('month')}>
-                    ◀ 월별로
-                  </button>
-                )}
-                <h3 style={{ margin: 0 }}>
-                  {drillLevel === 'year' && '연도별 평균 점수'}
-                  {drillLevel === 'month' && `${selectedYear}년 월별 평균 점수`}
-                  {drillLevel === 'day' && `${selectedYear}년 ${selectedMonth}월 일별 평균 점수`}
-                </h3>
-              </div>
+              <h3 style={{ margin: 0 }}>
+                {drillLevel === 'year' && '연도별 평균 점수'}
+                {drillLevel === 'month' && `${selectedYear}년 월별 평균 점수`}
+                {drillLevel === 'day' && `${selectedYear}년 ${selectedMonth}월 일별 평균 점수`}
+              </h3>
               <button className="close-btn" onClick={() => setActiveModal(null)}>✕</button>
             </div>
 
@@ -643,7 +633,58 @@ function App() {
               </>
             )}
 
-            <button className="modal-confirm-btn" style={{ marginTop: '16px' }} onClick={() => setActiveModal(null)}>닫기</button>
+            {/* 하단 버튼 영역: '연별로' / '월별로' + '닫기' 나란히 배치 */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+              {drillLevel === 'month' && (
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    padding: '11px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease',
+                  }}
+                  onClick={() => setDrillLevel('year')}
+                >
+                  ◀ 연별로
+                </button>
+              )}
+
+              {drillLevel === 'day' && (
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    padding: '11px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease',
+                  }}
+                  onClick={() => setDrillLevel('month')}
+                >
+                  ◀ 월별로
+                </button>
+              )}
+
+              <button
+                className="modal-confirm-btn"
+                style={{ flex: 1, width: 'auto' }}
+                onClick={() => setActiveModal(null)}
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -669,7 +710,7 @@ function App() {
         </div>
       )}
 
-      {/* Cloudflare Tunnel URL 설정 모달 */}
+      {/* 개인 스마트 의자 도메인 연결 설정 모달 */}
       {isUrlModalOpen && (
         <div className="modal-overlay" onClick={() => setIsUrlModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -696,11 +737,11 @@ function App() {
               <h3 style={{ margin: '0 auto' }}>AI 체형 기준점(0점) 정밀 측정 ({calibStep + 1}/3)</h3>
               {!isCalibrating && <button className="close-btn" onClick={closeCalibModal}>✕</button>}
             </div>
-            
+
             <p style={{ color: '#555', fontSize: '14px', lineHeight: '1.6', margin: '20px 0', minHeight: '50px' }}>
-              {isCalibrating 
-                ? "움직이지 마세요!\nAI가 센서 노이즈를 제거하며 정밀 측정 중입니다..." 
-                : calibStep === 0 
+              {isCalibrating
+                ? "움직이지 마세요!\nAI가 센서 노이즈를 제거하며 정밀 측정 중입니다..."
+                : calibStep === 0
                   ? "허리를 펴고 의자 깊숙이 바르게 앉아주세요.\n시작 버튼을 누르면 1차 측정을 3초간 진행합니다."
                   : calibStep === 1
                     ? "✅ 1차 측정 완료!\n자세를 그대로 유지한 채 2차 측정을 시작해 주세요."
@@ -709,27 +750,27 @@ function App() {
             </p>
 
             <div className="calib-progress-container" style={{ width: '100%', height: '14px', backgroundColor: '#e2e8f0', borderRadius: '7px', overflow: 'hidden', margin: '0 0 20px 0' }}>
-              <div 
-                className="calib-progress-fill" 
+              <div
+                className="calib-progress-fill"
                 style={{ width: `${calibProgress}%`, height: '100%', backgroundColor: '#4263eb', transition: 'width 0.1s linear' }}
               ></div>
             </div>
             <div style={{ fontSize: '13px', color: '#4263eb', fontWeight: 'bold', marginBottom: '20px' }}>
               진행률: {calibProgress}%
             </div>
-            
-            <button 
-              className="modal-confirm-btn" 
-              onClick={handleStartCalibration} 
+
+            <button
+              className="modal-confirm-btn"
+              onClick={handleStartCalibration}
               disabled={isCalibrating}
               style={{ background: isCalibrating ? '#94a3b8' : '#4263eb', color: 'white', padding: '14px', fontSize: '14px', cursor: isCalibrating ? 'not-allowed' : 'pointer' }}
             >
-              {isCalibrating 
-                ? "측정 진행 중..." 
-                : calibStep === 0 
+              {isCalibrating
+                ? "측정 진행 중..."
+                : calibStep === 0
                   ? "▶️ 1차 측정 시작 (3초)"
-                  : calibStep === 1 
-                    ? "▶️ 2차 측정 시작 (3초)" 
+                  : calibStep === 1
+                    ? "▶️ 2차 측정 시작 (3초)"
                     : "▶️ 3차 측정 및 AI 학습 완료 (3초)"
               }
             </button>
