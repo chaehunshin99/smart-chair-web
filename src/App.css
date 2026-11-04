@@ -231,7 +231,7 @@ body {
   white-space: nowrap;
 }
 
-/* ST7920 LCD 뷰 */
+/* ST7920 LCD 미니 뷰 */
 .lcd-display-card {
   background: #ffffff;
   border-radius: 16px;
@@ -644,7 +644,7 @@ body {
 .modal-content {
   background: #ffffff;
   width: 90%;
-  max-width: 480px;
+  max-width: 500px;
   border-radius: 18px;
   padding: 22px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
