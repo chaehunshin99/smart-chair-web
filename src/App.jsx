@@ -10,7 +10,6 @@ const POSTURE_TYPES = {
 };
 
 const BASE_DOMAIN = 'smart-chair-web.site';
-const DEFAULT_SERVER_URL = `https://api.${BASE_DOMAIN}`;
 
 // -------------------------------------------------------------
 // 📈 연/월/일별 점수 추이를 즉시 렌더링하는 인라인 SVG 차트 컴포넌트
@@ -169,15 +168,32 @@ function App() {
   }, []);
 
   // -------------------------------------------------------------
-  // 🔄 실시간 데이터 폴링 (로그인된 상태에서만 통신)
+  // 🔄 안정화된 실시간 데이터 폴링 (2초 간격 + 타임아웃 방어)
   // -------------------------------------------------------------
   useEffect(() => {
-    const dataTimer = setInterval(async () => {
-      if (serverUrl && isLoggedIn) {
-        try {
-          const response = await fetch(`${serverUrl}/api/live-status`, { signal: AbortSignal.timeout(900) });
-          if (response.ok) {
-            const data = await response.json();
+    let isMounted = true;
+
+    const fetchLiveStatus = async () => {
+      if (!serverUrl || !isLoggedIn) {
+        if (isMounted) {
+          setIsConnected(false);
+          setIsSitting(false);
+        }
+        return;
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5초 초과 시 중단
+
+        const response = await fetch(`${serverUrl}/api/live-status`, { 
+          signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          if (isMounted) {
             if (data.currentPosture) setCurrentPosture(data.currentPosture);
             if (data.postureSeconds) setPostureSeconds(data.postureSeconds);
             if (data.pressures) {
@@ -186,18 +202,26 @@ function App() {
             }
             if (data.is_sitting !== undefined) setIsSitting(data.is_sitting);
             setIsConnected(true);
-            return;
           }
-        } catch {
+        } else {
+          if (isMounted) setIsConnected(false);
+        }
+      } catch {
+        if (isMounted) {
           setIsConnected(false);
           setIsSitting(false);
         }
-      } else {
-        setIsConnected(false);
-        setIsSitting(false);
       }
-    }, 1000);
-    return () => clearInterval(dataTimer);
+    };
+
+    // 최초 즉시 실행 후 2초 간격 폴링으로 라즈베리파이 부하 최소화
+    fetchLiveStatus();
+    const dataTimer = setInterval(fetchLiveStatus, 2000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(dataTimer);
+    };
   }, [serverUrl, isLoggedIn]);
 
   useEffect(() => {
@@ -691,16 +715,16 @@ function App() {
 
           <div className="heatmap-compact-footer">
             <div className="pressure-total-wrap">
-              <span className="total-title">압력 합계: <strong>{pressures.reduce((a, b) => a + b, 0)}</strong> / 기준 2500</span>
+              <span className="total-title">압력 합계: <strong>{pressures.reduce((a, b) => a + b, 0)}</strong> / 기준 800 (1kΩ)</span>
               <div className="threshold-bar-bg">
-                <div className="threshold-bar-fill" style={{ width: `${Math.min((pressures.reduce((a, b) => a + b, 0) / 8184) * 100, 100)}%`, backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8' }}></div>
-                <div className="threshold-marker" style={{ left: `${(2500 / 8184) * 100}%` }}></div>
+                <div className="threshold-bar-fill" style={{ width: `${Math.min((pressures.reduce((a, b) => a + b, 0) / 4000) * 100, 100)}%`, backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8' }}></div>
+                <div className="threshold-marker" style={{ left: `${(800 / 4000) * 100}%` }}></div>
               </div>
             </div>
             <div className="circle-mini-legend">
-              <div className="mini-legend-item"><span className="mini-dot dot-high"></span> 강함 (&gt;750)</div>
-              <div className="mini-legend-item"><span className="mini-dot dot-mid"></span> 보통 (300~749)</div>
-              <div className="mini-legend-item"><span className="mini-dot dot-low"></span> 약함 (&lt;300)</div>
+              <div className="mini-legend-item"><span className="mini-dot dot-high"></span> 강함 (&gt;500)</div>
+              <div className="mini-legend-item"><span className="mini-dot dot-mid"></span> 보통 (200~499)</div>
+              <div className="mini-legend-item"><span className="mini-dot dot-low"></span> 약함 (&lt;200)</div>
             </div>
           </div>
         </div>
