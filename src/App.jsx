@@ -525,11 +525,11 @@ function App() {
   // =============================================================
   return (
     <div className="app">
-      {/* ===================== 상단: 학교 배너 (본관 사진 + 로고 · 검색 · 계정) ===================== */}
+      {/* ===================== 상단: 학교 배너 (로고 · 검색 · 계정) ===================== */}
       <div className="hero">
       <header className="top-bar">
         <div className="brand">
-          <span className="brand-logo"><img src="/school/logo-blue.png" alt="수도전기공업고등학교 교표" /></span>
+          <span className="brand-logo">⚡</span>
           <span className="brand-text">
             <span className="brand-name">BARO Chair</span>
             <span className="brand-school">수도전기공업고등학교</span>
@@ -632,7 +632,7 @@ function App() {
           <span className="hero-eyebrow">⚡ SUDO ELECTRIC TECHNICAL HIGH SCHOOL · YOUNG MEISTER</span>
           <h1 className="hero-title">세상의 빛이 되자, <b>바른 자세</b>부터</h1>
           <div className="hero-tags">
-            <span>전기</span><span>전자</span><span>기계</span><span>IoT</span><span>AI</span><span>마이스터</span>
+            <span>전기</span><span>전자</span><span>기계</span><span>정보통신</span><span>IoT</span><span>AI</span><span>마이스터</span>
           </div>
         </div>
         <svg className="hero-wave" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
@@ -793,7 +793,7 @@ function App() {
 
       {/* ===================== 하단: 학교 정보 ===================== */}
       <footer className="school-footer">
-        <img className="footer-emblem" src="/school/emblem.png" alt="수도전기공업고등학교 앰블럼" />
+        <span className="footer-emblem">⚡</span>
         <div className="footer-text">
           <strong>Sudo Electric Technical High School</strong>
           <span>창의 · 열정 · 도전 — 미래 에너지 산업을 이끌어 갈 영 마이스터</span>
@@ -806,7 +806,7 @@ function App() {
         <div className="modal-overlay" onClick={() => setAuthModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title-with-logo"><img src="/school/emblem.png" alt="" />{authModal === 'login' ? '스마트 의자 로그인' : '새 기기 서브도메인 등록'}</h3>
+              <h3 className="modal-title-with-logo">{authModal === 'login' ? '스마트 의자 로그인' : '새 기기 서브도메인 등록'}</h3>
               <button className="close-btn" onClick={() => setAuthModal(null)}>✕</button>
             </div>
             <p className="modal-subtext">{authModal === 'login' ? '등록된 서브도메인과 4자리 PIN을 입력하세요.' : '연결할 서브도메인과 4자리 PIN을 새로 등록합니다.'}</p>
