@@ -990,8 +990,8 @@ body {
   padding: 12px 24px 46px;
   color: #ffffff;
   background:
-    linear-gradient(100deg, rgba(0, 20, 137, 0.96) 0%, rgba(0, 20, 137, 0.82) 40%, rgba(0, 20, 137, 0.45) 75%, rgba(65, 143, 222, 0.25) 100%),
-    url('/school/building.jpg') center 35% / cover no-repeat;
+    radial-gradient(circle at 85% 20%, rgba(171, 202, 233, 0.35) 0%, transparent 45%),
+    linear-gradient(110deg, #001489 0%, #0a2a9e 55%, #418fde 100%);
   overflow: visible;
 }
 .hero::after { /* 전기 회로선 장식 */
@@ -1016,7 +1016,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 14px rgba(0, 10, 70, 0.35);
 }
-.brand-logo img { height: 30px; width: auto; display: block; }
+.brand-logo { font-size: 22px; color: var(--sudo-deep); }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
 .hero .brand-name { color: #ffffff; font-size: 18px; letter-spacing: 0.2px; }
 .brand-school { font-size: 11px; font-weight: 600; color: var(--sudo-light); margin-top: 2px; }
@@ -1056,10 +1056,6 @@ body {
   position: relative; overflow: hidden;
   background: linear-gradient(160deg, #ffffff 55%, var(--sudo-pale) 100%);
 }
-.tile-score::after { /* 교표 워터마크 */
-  content: ''; position: absolute; right: -14px; bottom: -18px; width: 86px; height: 105px;
-  background: url('/school/logo-blue.png') center / contain no-repeat; opacity: 0.07; pointer-events: none;
-}
 .tile-label { color: #4a5a85; }
 .mini-sub { color: #8a97b8; }
 .tile-mini { border-top: 3px solid var(--sudo-sky); }
@@ -1085,7 +1081,6 @@ body {
 .ip-input:focus, .subdomain-input-group:focus-within { border-color: var(--sudo-sky); box-shadow: 0 0 0 3px rgba(65, 143, 222, 0.18); }
 .modal-content { border-top: 5px solid var(--sudo-deep); }
 .modal-title-with-logo { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--ink); }
-.modal-title-with-logo img { width: 30px; height: 30px; }
 
 /* ---------- 센서 · 통계 · 기울기 ---------- */
 .seat-grid { background: var(--sudo-pale); border-color: #d4e3f5; }
@@ -1116,7 +1111,11 @@ body {
   background: linear-gradient(100deg, var(--sudo-deep) 0%, #0b2fa8 60%, var(--sudo-sky) 100%);
   color: #ffffff;
 }
-.footer-emblem { width: 46px; height: 46px; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25)); }
+.footer-emblem {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #ffffff; font-size: 22px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
 .footer-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .footer-text strong { font-size: 14px; font-weight: 800; }
 .footer-text span { font-size: 11px; color: var(--sudo-light); }
@@ -1128,7 +1127,7 @@ body {
   .app > .favorite-bar, .app > .bento, .app > .school-footer { margin-left: 12px; margin-right: 12px; }
   .hero { padding: 8px 12px 38px; }
   .brand-logo { width: 36px; height: 36px; border-radius: 10px; }
-  .brand-logo img { height: 25px; }
+  .brand-logo { font-size: 19px; }
   .hero .brand-name { font-size: 16px; }
   .hero-eyebrow { font-size: 9px; letter-spacing: 0.6px; }
   .hero-title { font-size: 19px; margin: 4px 0 8px; }
