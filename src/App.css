@@ -956,3 +956,184 @@ button { -webkit-tap-highlight-color: transparent; }
   .tile-stats .donut-hole { width: 122px; height: 122px; }
   .tile-stats .donut-center-value { font-size: 28px; }
 }
+
+/* =========================================================
+   🏫 수도전기공업고등학교 테마
+   학교 전용색상: 딥블루 #001489 · 스카이블루 #418FDE · 라이트블루 #ABCAE9
+                 블루그레이 #B1B3B3 · 라이트그레이 #C8C9C7
+   ========================================================= */
+:root {
+  --sudo-deep: #001489;
+  --sudo-deep-2: #0a2a9e;
+  --sudo-sky: #418fde;
+  --sudo-light: #abcae9;
+  --sudo-pale: #eaf2fb;
+  --sudo-gray: #b1b3b3;
+  --sudo-lgray: #c8c9c7;
+  --ink: #0b1b4d;
+}
+
+body {
+  color: var(--ink);
+  background-color: #f2f6fc;
+  /* 설계도(블루프린트) 느낌의 옅은 점 격자 */
+  background-image: radial-gradient(rgba(0, 20, 137, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.app { padding: 0 0 24px; }
+.app > .favorite-bar, .app > .bento, .app > .school-footer { margin-left: 24px; margin-right: 24px; }
+
+/* ---------- 상단 배너: 본관 사진 + 딥블루 그라데이션 ---------- */
+.hero {
+  position: relative;
+  padding: 12px 24px 46px;
+  color: #ffffff;
+  background:
+    linear-gradient(100deg, rgba(0, 20, 137, 0.96) 0%, rgba(0, 20, 137, 0.82) 40%, rgba(0, 20, 137, 0.45) 75%, rgba(65, 143, 222, 0.25) 100%),
+    url('/school/building.jpg') center 35% / cover no-repeat;
+  overflow: visible;
+}
+.hero::after { /* 전기 회로선 장식 */
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(90deg, rgba(171, 202, 233, 0.12) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(171, 202, 233, 0.12) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(90deg, transparent 30%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 30%, #000 100%);
+  pointer-events: none;
+}
+.hero > * { position: relative; z-index: 1; }
+.hero-wave { position: absolute; left: 0; right: 0; bottom: -1px; width: 100%; height: 34px; z-index: 1; }
+.hero-wave path { fill: #f2f6fc; }
+
+.hero .top-bar { position: relative; top: auto; background: transparent; padding: 6px 0; z-index: 650; }
+.brand { gap: 10px; }
+.brand-logo {
+  width: 42px; height: 42px; border-radius: 12px; background: #ffffff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 10, 70, 0.35);
+}
+.brand-logo img { height: 30px; width: auto; display: block; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.hero .brand-name { color: #ffffff; font-size: 18px; letter-spacing: 0.2px; }
+.brand-school { font-size: 11px; font-weight: 600; color: var(--sudo-light); margin-top: 2px; }
+
+.hero .search-box { background: rgba(255, 255, 255, 0.97); border-color: transparent; box-shadow: 0 6px 18px rgba(0, 10, 70, 0.25); }
+.hero .search-box:focus-within { box-shadow: 0 0 0 3px rgba(171, 202, 233, 0.6); }
+.hero .account-btn { border-color: transparent; box-shadow: 0 6px 18px rgba(0, 10, 70, 0.25); }
+.hero .account-btn.login { background: var(--sudo-sky); border-color: var(--sudo-sky); }
+
+.hero-copy { padding: 14px 4px 0; }
+.hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--sudo-light); }
+.hero-title { margin: 6px 0 10px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff; }
+.hero-title b { color: #ffffff; background: linear-gradient(transparent 62%, rgba(65, 143, 222, 0.85) 62%); padding: 0 2px; }
+.hero-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.hero-tags span {
+  font-size: 11px; font-weight: 700; color: #ffffff;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(171, 202, 233, 0.45);
+}
+.hero-tags span::before { content: '#'; color: var(--sudo-light); margin-right: 1px; }
+
+.app > .favorite-bar { margin-top: -6px; position: relative; z-index: 2; }
+.app > .bento { margin-top: -18px; position: relative; z-index: 2; }
+
+/* ---------- 카드 ---------- */
+.tile {
+  border-color: #dbe5f4;
+  box-shadow: 0 6px 18px rgba(0, 20, 137, 0.06);
+}
+.card-title-bar h3 { color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.card-title-bar h3::before { /* 학교 홈페이지의 ■ 표시 */
+  content: ''; width: 6px; height: 16px; border-radius: 2px; background: var(--sudo-deep);
+}
+.card-tag { background: var(--sudo-pale); color: var(--sudo-deep); }
+
+.tile-score {
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, #ffffff 55%, var(--sudo-pale) 100%);
+}
+.tile-score::after { /* 교표 워터마크 */
+  content: ''; position: absolute; right: -14px; bottom: -18px; width: 86px; height: 105px;
+  background: url('/school/logo-blue.png') center / contain no-repeat; opacity: 0.07; pointer-events: none;
+}
+.tile-label { color: #4a5a85; }
+.mini-sub { color: #8a97b8; }
+.tile-mini { border-top: 3px solid var(--sudo-sky); }
+.tile-mini.warn { border-top-color: #ef4444; }
+
+/* ---------- 버튼 · 탭 ---------- */
+.action-btn { background: var(--sudo-pale); border-color: #cfe0f4; color: var(--sudo-deep); }
+.action-btn:hover { background: #dbe9f8; }
+.action-btn.primary { background: var(--sudo-deep); border-color: var(--sudo-deep); color: #ffffff; }
+.action-btn.primary:hover { background: var(--sudo-deep-2); }
+
+.col-right .tab-navigation { border-color: #dbe5f4; box-shadow: 0 6px 18px rgba(0, 20, 137, 0.06); }
+.tab-btn { color: #4a5a85; }
+.tab-btn:hover { background: var(--sudo-pale); color: var(--sudo-deep); }
+.tab-btn.active { background: var(--sudo-deep); color: #ffffff; box-shadow: inset 0 -3px 0 var(--sudo-sky); }
+
+.account-menu-info { color: #4a5a85; }
+.modal-confirm-btn { background-color: var(--sudo-deep); }
+.modal-confirm-btn:hover { background-color: var(--sudo-deep-2); }
+.auth-text-btn { color: var(--sudo-sky); }
+.calib-progress-fill { background-color: var(--sudo-sky); }
+.highlight-score { color: var(--sudo-deep); }
+.ip-input:focus, .subdomain-input-group:focus-within { border-color: var(--sudo-sky); box-shadow: 0 0 0 3px rgba(65, 143, 222, 0.18); }
+.modal-content { border-top: 5px solid var(--sudo-deep); }
+.modal-title-with-logo { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--ink); }
+.modal-title-with-logo img { width: 30px; height: 30px; }
+
+/* ---------- 센서 · 통계 · 기울기 ---------- */
+.seat-grid { background: var(--sudo-pale); border-color: #d4e3f5; }
+.seat-cell { border-color: #dce8f6; }
+.progress-bar-bg, .tilt-bar-bg, .threshold-bar-bg { background-color: #e3ebf6; }
+.donut-hole { box-shadow: inset 0 0 0 1px #e3ebf6; }
+
+/* ---------- LCD: 가로 화면에서 검은 테두리가 커지던 문제 수정 ---------- */
+.tile-lcd { justify-content: flex-start; }
+.tile-lcd .lcd-screen-frame {
+  flex: none;                 /* 카드 높이만큼 늘어나지 않게 */
+  margin: auto 0;             /* 카드 가운데에 놓이게 */
+  align-self: center;
+  width: 100%;
+  max-width: 380px;
+  padding: 10px;
+  background: #0b1438;
+  border-radius: 10px;
+}
+.tile-lcd .lcd-bezel-1602 { max-width: none; }
+
+/* ---------- 하단 학교 정보 ---------- */
+.school-footer {
+  margin-top: 22px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: linear-gradient(100deg, var(--sudo-deep) 0%, #0b2fa8 60%, var(--sudo-sky) 100%);
+  color: #ffffff;
+}
+.footer-emblem { width: 46px; height: 46px; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25)); }
+.footer-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.footer-text strong { font-size: 14px; font-weight: 800; }
+.footer-text span { font-size: 11px; color: var(--sudo-light); }
+.footer-project { margin-left: auto; font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, 0.75); white-space: nowrap; }
+
+/* ---------- 모바일 ---------- */
+@media (max-width: 680px) {
+  .app { padding: 0 0 20px; }
+  .app > .favorite-bar, .app > .bento, .app > .school-footer { margin-left: 12px; margin-right: 12px; }
+  .hero { padding: 8px 12px 38px; }
+  .brand-logo { width: 36px; height: 36px; border-radius: 10px; }
+  .brand-logo img { height: 25px; }
+  .hero .brand-name { font-size: 16px; }
+  .hero-eyebrow { font-size: 9px; letter-spacing: 0.6px; }
+  .hero-title { font-size: 19px; margin: 4px 0 8px; }
+  .hero-tags span { font-size: 10px; padding: 3px 8px; }
+  .app > .bento { margin-top: -14px; }
+  .school-footer { flex-wrap: wrap; }
+  .footer-project { margin-left: 0; width: 100%; }
+}
