@@ -745,7 +745,7 @@ button { -webkit-tap-highlight-color: transparent; }
 /* =========================================================
    ✨ 간결한 새 레이아웃 (상단바 + 요약 카드 + 탭)
    ========================================================= */
-.app { max-width: 1040px; margin: 0 auto; padding: 14px 16px 32px; }
+.app { width: 100%; max-width: none; margin: 0; padding: 12px 24px 28px; }
 
 .top-bar {
   display: flex;
@@ -814,12 +814,13 @@ button { -webkit-tap-highlight-color: transparent; }
    ========================================================= */
 .bento {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-auto-rows: auto;
-  gap: 14px;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); /* 왼쪽 요약 : 오른쪽 탭 */
+  gap: 16px;
   margin-top: 10px;
-  align-items: stretch; /* 같은 줄 카드 높이를 똑같이 */
+  align-items: stretch;
 }
+.col-left, .col-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
 .tile {
   background: #ffffff;
@@ -832,16 +833,12 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .tile.alerting, .tile.warn { border-color: #fca5a5; background: #fffafa; }
 
-/* 칸 배치 */
-.tile-score   { grid-column: span 3; }
-.tile-mini    { grid-column: span 3; }
-.tile-alert   { grid-column: span 8; }
-.tile-actions { grid-column: span 4; }
-.tile-stats   { grid-column: span 7; }
-.tile-heatmap { grid-column: span 5; }
-.tile-lcd     { grid-column: span 6; }
-.tile-tilt    { grid-column: span 6; }
-.mobile-only  { display: none; }
+/* 탭 아래 카드가 오른쪽 남은 높이를 꽉 채우게 */
+.col-right .tab-navigation { margin: 0; gap: 4px; padding: 4px; }
+.col-right .tab-btn { padding: 11px 6px; font-size: 14px; white-space: nowrap; }
+.tile-panel { flex: 1; }
+.device-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.col-left .tile-alert { flex: 1; }
 
 /* 1줄: 점수 + 미니 숫자 */
 .tile-head { display: flex; justify-content: space-between; align-items: center; width: 100%; }
@@ -888,6 +885,7 @@ button { -webkit-tap-highlight-color: transparent; }
 /* 3줄: 센서 (세로 길이 줄인 버전) */
 .seat-grid {
   flex: 1;
+  width: 100%; max-width: 560px; margin: 0 auto;
   display: flex; flex-direction: column; justify-content: center; gap: 4px;
   background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px;
   padding: 6px 10px;
@@ -903,7 +901,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .seat-cell .circle-socket { width: 34px; height: 34px; margin: 0; flex-shrink: 0; }
 .cell-text { font-size: 12px; font-weight: 800; color: #0f172a; white-space: nowrap; }
 .cell-text b { color: #94a3b8; font-weight: 700; margin-right: 3px; font-size: 10px; }
-.heat-footer { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.heat-footer { display: flex; flex-direction: column; gap: 6px; margin: 10px auto 0; width: 100%; max-width: 560px; }
 
 /* 4줄: LCD + 기울기 */
 .tile-lcd .lcd-screen-frame { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; }
@@ -915,13 +913,9 @@ button { -webkit-tap-highlight-color: transparent; }
 /* =========================================================
    📱 반응형
    ========================================================= */
-@media (max-width: 960px) {
-  .tile-score { grid-column: span 12; }
-  .tile-mini { grid-column: span 4; }
-  .tile-alert { grid-column: span 12; }
-  .tile-actions { grid-column: span 12; }
-  .tile-stats, .tile-heatmap { grid-column: span 6; }
-  .stats-layout { flex-direction: column; gap: 14px; }
+@media (max-width: 1100px) {
+  .bento { grid-template-columns: 1fr; }
+  .mini-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 @media (max-width: 680px) {
@@ -935,8 +929,10 @@ button { -webkit-tap-highlight-color: transparent; }
   /* 아이폰에서 입력칸 누를 때 화면 확대 방지 (16px 이상) */
   input, select, textarea, .search-input, .ip-input, .subdomain-input-group input { font-size: 16px !important; }
 
-  .bento { gap: 10px; }
+  .bento, .col-left, .col-right { gap: 10px; }
+  .mini-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .tile { padding: 14px; }
+  .tile-score { grid-column: 1 / -1; }
   .tile-score .score-number { font-size: 40px; }
   .tile-mini { padding: 10px 8px; align-items: center; text-align: center; gap: 3px; }
   .mini-value { font-size: 17px; max-width: 100%; }
@@ -944,15 +940,19 @@ button { -webkit-tap-highlight-color: transparent; }
   .tile-alert { flex-direction: column; align-items: stretch; gap: 8px; }
   .tile-alert .alert-chips .alert-chip { flex: 1; justify-content: center; }
   .tile-alert .alert-message { text-align: center; }
-
-  /* 모바일: 아래 카드들은 탭으로 하나씩 */
-  .mobile-only { display: flex; grid-column: span 12; margin: 0; gap: 4px; padding: 4px; }
-  .mobile-only .tab-btn { padding: 10px 6px; font-size: 13px; }
-  .m-hidden { display: none !important; }
-  .tile-stats, .tile-heatmap, .tile-lcd, .tile-tilt { grid-column: span 12; }
+  .col-right .tab-btn { font-size: 13px; padding: 10px 4px; }
+  .stats-layout { flex-direction: column; gap: 14px; }
+  .device-grid { grid-template-columns: 1fr; gap: 10px; }
 
   .modal-content { width: 94%; padding: 18px; max-height: 88vh; overflow-y: auto; }
   .history-item { flex-direction: column; align-items: flex-start; }
   .dropdown-section-title .hint { display: none; }
   .search-dropdown { max-height: 60vh; }
+}
+
+/* 넓은 화면에서는 도넛을 조금 더 크게 */
+@media (min-width: 1101px) {
+  .tile-stats .donut-chart { width: 180px; height: 180px; }
+  .tile-stats .donut-hole { width: 122px; height: 122px; }
+  .tile-stats .donut-center-value { font-size: 28px; }
 }
