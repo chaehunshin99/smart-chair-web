@@ -633,7 +633,9 @@ function App() {
       )}
 
       <main className="bento">
-        {/* ── 1줄: 핵심 숫자 4칸 ── */}
+        {/* ── 왼쪽: 핵심 숫자 + 알림 + 버튼 ── */}
+        <section className="col-left">
+          <div className="mini-grid">
         <div id="sum-score" className={`tile tile-score${alertType ? ' alerting' : ''}${hl('sum-score')}`}>
           <div className="tile-head">
             <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>● {isConnected ? '실시간' : '연결 대기'}</span>
@@ -665,7 +667,7 @@ function App() {
           <span className="mini-sub">자정에 초기화</span>
         </div>
 
-        {/* ── 2줄: 알림 상태 + 빠른 실행 ── */}
+          </div>
         <div id="sum-alerts" className={`tile tile-alert${alertType ? ' alerting' : ''}${hl('sum-alerts')}`}>
           <div className="alert-chips">
             <span className={`alert-chip${isBuzzerOn ? ' on buzzer' : ''}`}>🔊<em>부저</em></span>
@@ -680,15 +682,18 @@ function App() {
           <button className="action-btn primary" onClick={openCalibModal}>🎯 바른 자세 설정</button>
         </div>
 
-        {/* ── 모바일 전용 탭 (PC에서는 아래 카드가 한 화면에 다 보임) ── */}
-        <div id="card-tabs" className={`tab-navigation mobile-only${hl('card-tabs')}`}>
-          <button className={`tab-btn ${activeTab === 'statistics' ? 'active' : ''}`} onClick={() => setActiveTab('statistics')}>📊 통계</button>
-          <button className={`tab-btn ${activeTab === 'heatmap' ? 'active' : ''}`} onClick={() => setActiveTab('heatmap')}>💺 센서</button>
-          <button className={`tab-btn ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>📺 기기</button>
-        </div>
+        </section>
 
-        {/* ── 3줄: 통계 + 센서 ── */}
-        <div id="tile-stats" className={`tile tile-stats${activeTab !== 'statistics' ? ' m-hidden' : ''}${hl('tile-stats')}`}>
+        {/* ── 오른쪽: 탭으로 나눈 상세 화면 ── */}
+        <section className="col-right">
+          <div id="card-tabs" className={`tab-navigation${hl('card-tabs')}`}>
+            <button className={`tab-btn ${activeTab === 'statistics' ? 'active' : ''}`} onClick={() => setActiveTab('statistics')}>📊 통계</button>
+            <button className={`tab-btn ${activeTab === 'heatmap' ? 'active' : ''}`} onClick={() => setActiveTab('heatmap')}>💺 센서</button>
+            <button className={`tab-btn ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>📺 기기 화면</button>
+          </div>
+
+          {activeTab === 'statistics' && (
+        <div id="tile-stats" className={`tile tile-panel tile-stats${hl('tile-stats')}`}>
           <div className="card-title-bar"><h3>오늘의 자세 비율</h3><span className="card-tag">자정 초기화</span></div>
           <div className="stats-layout">
             <div className="donut-chart" style={donutChartStyle}>
@@ -710,8 +715,10 @@ function App() {
             </div>
           </div>
         </div>
+          )}
 
-        <div id="tile-heatmap" className={`tile tile-heatmap${activeTab !== 'heatmap' ? ' m-hidden' : ''}${hl('tile-heatmap')}`}>
+          {activeTab === 'heatmap' && (
+        <div id="tile-heatmap" className={`tile tile-panel tile-heatmap${hl('tile-heatmap')}`}>
           <div className="card-title-bar">
             <h3>압력 분포</h3>
             <span className={`status-pill ${isConnected && isSitting ? 'sitting' : 'empty'}`}>{isConnected && isSitting ? '착석 중' : isConnected ? '빈 의자' : '연결 안 됨'}</span>
@@ -738,9 +745,11 @@ function App() {
             </div>
           </div>
         </div>
+          )}
 
-        {/* ── 4줄: LCD + 기울기 게이지 ── */}
-        <div id="card-lcd" className={`tile tile-lcd${activeTab !== 'device' ? ' m-hidden' : ''}${hl('card-lcd')}`}>
+          {activeTab === 'device' && (
+            <div className="tile-panel device-grid">
+        <div id="card-lcd" className={`tile tile-lcd${hl('card-lcd')}`}>
           <div className="card-title-bar"><h3>LCD 미리보기</h3><span className="card-tag">1602 LCD</span></div>
           <div className="lcd-screen-frame">
             <div className="lcd-bezel-1602">
@@ -749,8 +758,7 @@ function App() {
             </div>
           </div>
         </div>
-
-        <div id="card-tilt" className={`tile tile-tilt${activeTab !== 'device' ? ' m-hidden' : ''}${hl('card-tilt')}`}>
+        <div id="card-tilt" className={`tile tile-tilt${hl('card-tilt')}`}>
           <div className="card-title-bar"><h3>의자 기울기</h3><span className={`card-tag${isTiltOver ? ' danger' : ''}`}>경고 {tiltAlarmAngle}° 이상</span></div>
           <div className="tilt-value" style={{ color: isTiltOver ? '#dc2626' : '#0f172a' }}>{isConnected ? angle.toFixed(1) : '-'}<span>°</span></div>
           <div className="tilt-bar-bg">
@@ -759,6 +767,9 @@ function App() {
           </div>
           <div className="tilt-scale"><span>0°</span><span>{TILT_GAUGE_MAX}°</span></div>
         </div>
+            </div>
+          )}
+        </section>
       </main>
 
 
