@@ -1136,3 +1136,21 @@ body {
   .school-footer { flex-wrap: wrap; }
   .footer-project { margin-left: 0; width: 100%; }
 }
+
+/* ---------- 오늘 부저 울린 횟수 ---------- */
+.tile-alert .alert-message { flex: 1; min-width: 0; }
+.buzzer-count {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 78px; padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--sudo-pale, #eaf2fb);
+  border: 1px solid #cfe0f4;
+}
+.buzzer-count-label { font-size: 10px; font-weight: 700; color: #4a5a85; white-space: nowrap; }
+.buzzer-count strong { font-size: 22px; font-weight: 900; line-height: 1.1; color: var(--sudo-deep, #001489); }
+.buzzer-count small { font-size: 12px; font-weight: 700; margin-left: 1px; }
+@media (max-width: 680px) {
+  .buzzer-count { flex-direction: row; gap: 8px; min-width: 0; align-self: center; padding: 6px 14px; }
+  .buzzer-count strong { font-size: 18px; }
+}
