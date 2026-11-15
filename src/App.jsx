@@ -36,6 +36,7 @@ const SEARCH_ITEMS = [
   { id: 'tab-device', icon: '📺', title: '기기 화면', desc: 'LCD 미리보기와 기울기 그래프', keywords: ['기기', '하드웨어', 'LCD', '기울기'], action: 'tab:device' },
   { id: 'lcd', icon: '📟', title: 'LCD 화면 미리보기', desc: '의자 LCD에 지금 표시 중인 내용', keywords: ['LCD', '화면', '디스플레이', '1602', '액정'], action: 'device:card-lcd' },
   { id: 'tilt', icon: '📐', title: '의자 기울기', desc: '실시간 기울기 각도와 경고 기준', keywords: ['각도', '기울기', '틸트', 'MPU6050', '경사'], action: 'device:card-tilt' },
+  { id: 'buzzer-count', icon: '🔊', title: '오늘 부저 울린 횟수', desc: '하루 동안 부저가 울린 횟수 (자정 초기화)', keywords: ['부저', '횟수', '알람', '경고', '소리', '카운트', '몇 번'], action: 'scroll:sum-buzzer' },
   { id: 'alerts', icon: '🔔', title: '알림 상태', desc: '부저·진동·LED 작동 여부', keywords: ['부저', '진동', 'LED', '알람', '경고', '소리', '모터'], action: 'scroll:sum-alerts' },
   { id: 'score', icon: '💯', title: '실시간 자세 점수', desc: '오늘 바른 자세 비율로 계산한 점수', keywords: ['점수', '스코어', '건강'], action: 'scroll:sum-score' },
   { id: 'status', icon: '🧍', title: '현재 감지 상태', desc: '지금 AI가 판단한 자세', keywords: ['현재', '자세', '상태', '감지', 'AI'], action: 'scroll:sum-posture' },
@@ -161,6 +162,7 @@ function App() {
   const [isBuzzerOn, setIsBuzzerOn] = useState(false);
   const [isMotorOn, setIsMotorOn] = useState(false);
   const [isLedOn, setIsLedOn] = useState(false);
+  const [buzzerCount, setBuzzerCount] = useState(0);   // 오늘 부저 울린 횟수
   const [sitThreshold, setSitThreshold] = useState(DEFAULT_SIT_THRESHOLD);
   const [tiltAlarmAngle, setTiltAlarmAngle] = useState(DEFAULT_TILT_ANGLE);
   const [aiModel, setAiModel] = useState('');
@@ -223,6 +225,7 @@ function App() {
         if (typeof d.continuous_sit_seconds === 'number') setContinuousSit(d.continuous_sit_seconds);
         if (typeof d.sit_threshold === 'number') setSitThreshold(d.sit_threshold);
         if (typeof d.tilt_alarm_angle === 'number') setTiltAlarmAngle(d.tilt_alarm_angle);
+        if (typeof d.buzzer_count_today === 'number') setBuzzerCount(d.buzzer_count_today);
         setAiModel(d.ai_model || '');
         setIsConnected(true);
       } catch {
@@ -694,6 +697,10 @@ function App() {
             <span className={`alert-chip${isLedOn ? ' on led' : ''}`}>💡<em>LED</em></span>
           </div>
           <span className="alert-message">{alertMessage}</span>
+          <div id="sum-buzzer" className={`buzzer-count${hl('sum-buzzer')}`} title="오늘 부저가 울린 횟수 (자정에 초기화)">
+            <span className="buzzer-count-label">오늘 부저</span>
+            <strong>{isConnected ? buzzerCount : '-'}<small>회</small></strong>
+          </div>
         </div>
 
         <div className="tile tile-actions">
@@ -932,7 +939,7 @@ function App() {
                       <div key={index} className="history-item">
                         <div className="history-info">
                           <span className="history-text"><strong>{item.fullDate || item.day}</strong> <span className="highlight-score">{item.score}점</span></span>
-                          <span className="history-sit-time">(총 착석: {item.sitTime})</span>
+                          <span className="history-sit-time">(총 착석: {item.sitTime}{typeof item.buzzerCount === 'number' ? ` · 🔊 부저 ${item.buzzerCount}회` : ''})</span>
                         </div>
                         <div className="history-actions">
                           <span className={`risk-tag ${risk.class}`}>{risk.label}</span>
@@ -961,6 +968,7 @@ function App() {
             <div className="detail-box">
               <p><strong>가장 빈번했던 자세:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{selectedDetail.topPosture || '데이터 없음'}</span></p>
               <p><strong>착석 시간:</strong> {selectedDetail.avgSitTime || selectedDetail.sitTime || '기록 없음'}</p>
+              {typeof selectedDetail.buzzerCount === 'number' && <p><strong>부저 울린 횟수:</strong> {selectedDetail.buzzerCount}회</p>}
             </div>
             <div className="ai-feedback-box">
               <strong>🤖 랜덤 포레스트 AI 피드백</strong>
