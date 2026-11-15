@@ -281,7 +281,7 @@ function App() {
 
   const getCircleStyle = (val) => {
     const ratio = Math.min(Math.max((val || 0) / 1023, 0), 1);
-    const size = 18 + ratio * 36;
+    const size = 12 + ratio * 24;
     return {
       width: `${size}px`, height: `${size}px`,
       backgroundColor: `rgba(239, 68, 68, ${(0.15 + ratio * 0.85).toFixed(2)})`,
@@ -490,7 +490,7 @@ function App() {
 
   const runAction = (item) => {
     const [type, arg] = item.action.split(':');
-    if (type === 'tab') { setActiveTab(arg); scrollAndHighlight('card-tabs'); }
+    if (type === 'tab') { setActiveTab(arg); scrollAndHighlight({ statistics: 'tile-stats', heatmap: 'tile-heatmap', device: 'card-lcd' }[arg] || 'card-tabs'); }
     else if (type === 'modal') { if (arg === 'history') handleOpenYearView(); else if (arg === 'calibrate') openCalibModal(); }
     else if (type === 'scroll') scrollAndHighlight(arg);
     else if (type === 'device') { setActiveTab('device'); scrollAndHighlight(arg); }
@@ -632,152 +632,135 @@ function App() {
         </div>
       )}
 
-      <main className="dashboard">
-        {/* ===================== 왼쪽: 요약 카드 하나 ===================== */}
-        <section className="col-left">
-          <div className={`summary-card${alertType ? ' alerting' : ''}`}>
-            <div className="summary-top">
-              <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>● {isConnected ? '실시간 연결' : '연결 대기'}</span>
-              <span className="date-small">{todayDate}</span>
-            </div>
-
-            <div id="sum-score" className={`score-block${hl('sum-score')}`}>
-              <div className="score-number" style={{ color: healthScore >= 80 ? '#059669' : healthScore >= 60 ? '#d97706' : isConnected && totalSeconds > 0 ? '#dc2626' : '#94a3b8' }}>
-                {isConnected && totalSeconds > 0 ? healthScore : '-'}<span className="score-unit">점</span>
-              </div>
-              <div className="score-label">오늘 자세 점수</div>
-            </div>
-
-            <div className="mini-stats">
-              <div id="sum-posture" className={`mini-stat${hl('sum-posture')}`}>
-                <span className="mini-label">현재 자세</span>
-                <strong style={{ color: !isConnected ? '#94a3b8' : isSitting ? POSTURE_TYPES[currentPosture]?.color : '#64748b' }}>
-                  {!isConnected ? '-' : isSitting ? (POSTURE_TYPES[currentPosture]?.name || '').split(' (')[0].split(' / ')[0] : '빈 의자'}
-                </strong>
-              </div>
-              <div className="mini-stat">
-                <span className="mini-label">기울기</span>
-                <strong style={{ color: isTiltOver ? '#dc2626' : undefined }}>{isConnected ? `${angle.toFixed(1)}°` : '-'}</strong>
-              </div>
-              <div id="sum-sit" className={`mini-stat${hl('sum-sit')}`}>
-                <span className="mini-label">오늘 착석</span>
-                <strong>{formatTime(sitSeconds)}</strong>
-              </div>
-            </div>
-
-            <div id="sum-alerts" className={`alert-row${hl('sum-alerts')}`}>
-              <div className="alert-chips">
-                <span className={`alert-chip${isBuzzerOn ? ' on buzzer' : ''}`} title="부저">🔊</span>
-                <span className={`alert-chip${isMotorOn ? ' on motor' : ''}`} title="진동">📳</span>
-                <span className={`alert-chip${isLedOn ? ' on led' : ''}`} title="LED">💡</span>
-              </div>
-              <span className="alert-message">{alertMessage}</span>
-            </div>
-
-            {isConnected && aiModel && <div className="ai-badge">🤖 랜덤 포레스트 AI로 자세 판단 중</div>}
+      <main className="bento">
+        {/* ── 1줄: 핵심 숫자 4칸 ── */}
+        <div id="sum-score" className={`tile tile-score${alertType ? ' alerting' : ''}${hl('sum-score')}`}>
+          <div className="tile-head">
+            <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>● {isConnected ? '실시간' : '연결 대기'}</span>
+            <span className="date-small">{todayDate}</span>
           </div>
-
-          <div className="action-row">
-            <button className="action-btn" onClick={handleOpenYearView}>📊 지난 기록</button>
-            <button className="action-btn primary" onClick={openCalibModal}>🎯 바른 자세 설정</button>
+          <div className="score-number" style={{ color: healthScore >= 80 ? '#059669' : healthScore >= 60 ? '#d97706' : isConnected && totalSeconds > 0 ? '#dc2626' : '#94a3b8' }}>
+            {isConnected && totalSeconds > 0 ? healthScore : '-'}<span className="score-unit">점</span>
           </div>
-        </section>
+          <div className="tile-label">오늘 자세 점수</div>
+        </div>
 
-        {/* ===================== 오른쪽: 탭 ===================== */}
-        <section className="col-right">
-          <div id="card-tabs" className={`tab-navigation${hl('card-tabs')}`}>
-            <button className={`tab-btn ${activeTab === 'statistics' ? 'active' : ''}`} onClick={() => setActiveTab('statistics')}>📊 통계</button>
-            <button className={`tab-btn ${activeTab === 'heatmap' ? 'active' : ''}`} onClick={() => setActiveTab('heatmap')}>💺 센서</button>
-            <button className={`tab-btn ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>📺 기기 화면</button>
+        <div id="sum-posture" className={`tile tile-mini${hl('sum-posture')}`}>
+          <span className="tile-label">현재 자세</span>
+          <strong className="mini-value" style={{ color: !isConnected ? '#94a3b8' : isSitting ? POSTURE_TYPES[currentPosture]?.color : '#64748b' }}>
+            {!isConnected ? '-' : isSitting ? (POSTURE_TYPES[currentPosture]?.name || '').split(' (')[0].split(' / ')[0] : '빈 의자'}
+          </strong>
+          {isConnected && aiModel && <span className="mini-sub">🤖 AI 판단</span>}
+        </div>
+
+        <div className={`tile tile-mini${isTiltOver ? ' warn' : ''}`}>
+          <span className="tile-label">기울기</span>
+          <strong className="mini-value" style={{ color: isTiltOver ? '#dc2626' : undefined }}>{isConnected ? `${angle.toFixed(1)}°` : '-'}</strong>
+          <span className="mini-sub">경고 {tiltAlarmAngle}° 이상</span>
+        </div>
+
+        <div id="sum-sit" className={`tile tile-mini${hl('sum-sit')}`}>
+          <span className="tile-label">오늘 착석</span>
+          <strong className="mini-value">{formatTime(sitSeconds)}</strong>
+          <span className="mini-sub">자정에 초기화</span>
+        </div>
+
+        {/* ── 2줄: 알림 상태 + 빠른 실행 ── */}
+        <div id="sum-alerts" className={`tile tile-alert${alertType ? ' alerting' : ''}${hl('sum-alerts')}`}>
+          <div className="alert-chips">
+            <span className={`alert-chip${isBuzzerOn ? ' on buzzer' : ''}`}>🔊<em>부저</em></span>
+            <span className={`alert-chip${isMotorOn ? ' on motor' : ''}`}>📳<em>진동</em></span>
+            <span className={`alert-chip${isLedOn ? ' on led' : ''}`}>💡<em>LED</em></span>
           </div>
+          <span className="alert-message">{alertMessage}</span>
+        </div>
 
-          {activeTab === 'statistics' && (
-            <div className="panel-card">
-              <div className="card-title-bar"><h3>오늘의 자세 비율</h3><span className="card-tag">자정 초기화</span></div>
-              <div className="stats-layout">
-                <div className="donut-chart" style={donutChartStyle}>
-                  <div className="donut-hole">
-                    <span className="donut-center-label">바른 자세</span>
-                    <span className="donut-center-value">{totalSeconds > 0 ? `${postureStats.find((p) => p.key === 'good')?.percentage.toFixed(0)}%` : '-'}</span>
+        <div className="tile tile-actions">
+          <button className="action-btn" onClick={handleOpenYearView}>📊 지난 기록</button>
+          <button className="action-btn primary" onClick={openCalibModal}>🎯 바른 자세 설정</button>
+        </div>
+
+        {/* ── 모바일 전용 탭 (PC에서는 아래 카드가 한 화면에 다 보임) ── */}
+        <div id="card-tabs" className={`tab-navigation mobile-only${hl('card-tabs')}`}>
+          <button className={`tab-btn ${activeTab === 'statistics' ? 'active' : ''}`} onClick={() => setActiveTab('statistics')}>📊 통계</button>
+          <button className={`tab-btn ${activeTab === 'heatmap' ? 'active' : ''}`} onClick={() => setActiveTab('heatmap')}>💺 센서</button>
+          <button className={`tab-btn ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>📺 기기</button>
+        </div>
+
+        {/* ── 3줄: 통계 + 센서 ── */}
+        <div id="tile-stats" className={`tile tile-stats${activeTab !== 'statistics' ? ' m-hidden' : ''}${hl('tile-stats')}`}>
+          <div className="card-title-bar"><h3>오늘의 자세 비율</h3><span className="card-tag">자정 초기화</span></div>
+          <div className="stats-layout">
+            <div className="donut-chart" style={donutChartStyle}>
+              <div className="donut-hole">
+                <span className="donut-center-label">바른 자세</span>
+                <span className="donut-center-value">{totalSeconds > 0 ? `${postureStats.find((p) => p.key === 'good')?.percentage.toFixed(0)}%` : '-'}</span>
+              </div>
+            </div>
+            <div className="compact-list">
+              {postureStats.map((item) => (
+                <div key={item.key} id={`stat-${item.key}`} className={`stat-item${hl(`stat-${item.key}`)}`}>
+                  <div className="stat-header">
+                    <div className="stat-name-wrap"><span className="color-dot" style={{ backgroundColor: item.color }}></span><span className="stat-name">{item.name}</span></div>
+                    <div className="stat-values"><span className="stat-ratio">{totalSeconds > 0 ? `${item.percentage.toFixed(0)}%` : '0%'}</span><span className="stat-time-tag">{formatTime(item.seconds)}</span></div>
                   </div>
+                  <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${item.percentage}%`, backgroundColor: item.color }}></div></div>
                 </div>
-                <div className="compact-list">
-                  {postureStats.map((item) => (
-                    <div key={item.key} id={`stat-${item.key}`} className={`stat-item${hl(`stat-${item.key}`)}`}>
-                      <div className="stat-header">
-                        <div className="stat-name-wrap"><span className="color-dot" style={{ backgroundColor: item.color }}></span><span className="stat-name">{item.name}</span></div>
-                        <div className="stat-values"><span className="stat-ratio">{totalSeconds > 0 ? `${item.percentage.toFixed(0)}%` : '0%'}</span><span className="stat-time-tag">{formatTime(item.seconds)}</span></div>
-                      </div>
-                      <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${item.percentage}%`, backgroundColor: item.color }}></div></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
-          )}
+          </div>
+        </div>
 
-          {activeTab === 'heatmap' && (
-            <div className="panel-card">
-              <div className="card-title-bar">
-                <h3>압력 분포 (8채널)</h3>
-                <span className={`status-pill ${isConnected && isSitting ? 'sitting' : 'empty'}`}>{isConnected && isSitting ? '착석 중' : isConnected ? '빈 의자' : '연결 안 됨'}</span>
-              </div>
-              <div className="chair-visual-container">
-                <div className="seat-front-label">▲ 앞쪽 (무릎)</div>
-                <div className="actual-seat-cushion">
-                  {[{ cls: 'front-row', chs: [6, 7] }, { cls: 'center-row', chs: [3, 4, 5] }, { cls: 'rear-row', chs: [0, 1, 2] }].map((row) => (
-                    <div key={row.cls} className={`sensor-row ${row.cls}`}>
-                      {row.chs.map((ch) => (
-                        <div key={ch} id={`sensor-node-${ch}`} className={`sensor-node${hl(`sensor-node-${ch}`)}`}>
-                          <span className="node-id">{ch + 1}번 {SENSORS[ch].pos}</span>
-                          <div className="circle-socket"><div className="pressure-circle" style={getCircleStyle(pressures[ch])}></div></div>
-                          <strong className="node-val">{pressures[ch]}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-                <div className="seat-rear-label">▼ 뒤쪽 (등받이)</div>
-              </div>
-              <div className="heatmap-compact-footer">
-                <span className="total-title">압력 합계 <strong>{pressureSum}</strong> · 착석 기준 {sitThreshold}</span>
-                <div className="threshold-bar-bg">
-                  <div className="threshold-bar-fill" style={{ width: `${Math.min(pressureSum / PRESSURE_MAX_SUM, 1) * 100}%`, backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8' }}></div>
-                  <div className="threshold-marker" style={{ left: `${Math.min(sitThreshold / PRESSURE_MAX_SUM, 1) * 100}%` }}></div>
-                </div>
-                <div className="circle-mini-legend">
-                  <span><span className="mini-dot dot-high"></span> 강함 700+</span>
-                  <span><span className="mini-dot dot-mid"></span> 보통 300~699</span>
-                  <span><span className="mini-dot dot-low"></span> 약함 ~299</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'device' && (
-            <div className="panel-card">
-              <div id="card-lcd" className={`device-section${hl('card-lcd')}`}>
-                <div className="card-title-bar"><h3>LCD 미리보기</h3><span className="card-tag">1602 LCD</span></div>
-                <div className="lcd-screen-frame">
-                  <div className="lcd-bezel-1602">
-                    <div className="lcd-text-1602">{lcdText.line1}</div>
-                    <div className="lcd-text-1602">{lcdText.line2}</div>
+        <div id="tile-heatmap" className={`tile tile-heatmap${activeTab !== 'heatmap' ? ' m-hidden' : ''}${hl('tile-heatmap')}`}>
+          <div className="card-title-bar">
+            <h3>압력 분포</h3>
+            <span className={`status-pill ${isConnected && isSitting ? 'sitting' : 'empty'}`}>{isConnected && isSitting ? '착석 중' : isConnected ? '빈 의자' : '연결 안 됨'}</span>
+          </div>
+          <div className="seat-grid">
+            <span className="seat-edge">▲ 앞</span>
+            {[[6, 7], [3, 4, 5], [0, 1, 2]].map((chs, r) => (
+              <div key={r} className={`seat-row cols-${chs.length}`}>
+                {chs.map((ch) => (
+                  <div key={ch} id={`sensor-node-${ch}`} className={`seat-cell${hl(`sensor-node-${ch}`)}`} title={`${ch + 1}번 ${SENSORS[ch].pos}`}>
+                    <div className="circle-socket"><div className="pressure-circle" style={getCircleStyle(pressures[ch])}></div></div>
+                    <span className="cell-text"><b>{ch + 1}</b> {pressures[ch]}</span>
                   </div>
-                </div>
+                ))}
               </div>
-              <div id="card-tilt" className={`device-section${hl('card-tilt')}`}>
-                <div className="card-title-bar"><h3>의자 기울기</h3><span className={`card-tag${isTiltOver ? ' danger' : ''}`}>경고 {tiltAlarmAngle}° 이상</span></div>
-                <div className="tilt-value" style={{ color: isTiltOver ? '#dc2626' : '#0f172a' }}>{isConnected ? angle.toFixed(1) : '-'}<span>°</span></div>
-                <div className="tilt-bar-bg">
-                  <div className="tilt-bar-fill" style={{ width: `${Math.min(angle / TILT_GAUGE_MAX, 1) * 100}%`, backgroundColor: isTiltOver ? '#ef4444' : '#3b82f6' }}></div>
-                  <div className="threshold-marker" style={{ left: `${Math.min(tiltAlarmAngle / TILT_GAUGE_MAX, 1) * 100}%` }}></div>
-                </div>
-                <div className="tilt-scale"><span>0°</span><span>{TILT_GAUGE_MAX}°</span></div>
-              </div>
+            ))}
+            <span className="seat-edge">▼ 등받이</span>
+          </div>
+          <div className="heat-footer">
+            <span className="total-title">합계 <strong>{pressureSum}</strong> / 착석 기준 {sitThreshold}</span>
+            <div className="threshold-bar-bg">
+              <div className="threshold-bar-fill" style={{ width: `${Math.min(pressureSum / PRESSURE_MAX_SUM, 1) * 100}%`, backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8' }}></div>
+              <div className="threshold-marker" style={{ left: `${Math.min(sitThreshold / PRESSURE_MAX_SUM, 1) * 100}%` }}></div>
             </div>
-          )}
-        </section>
+          </div>
+        </div>
+
+        {/* ── 4줄: LCD + 기울기 게이지 ── */}
+        <div id="card-lcd" className={`tile tile-lcd${activeTab !== 'device' ? ' m-hidden' : ''}${hl('card-lcd')}`}>
+          <div className="card-title-bar"><h3>LCD 미리보기</h3><span className="card-tag">1602 LCD</span></div>
+          <div className="lcd-screen-frame">
+            <div className="lcd-bezel-1602">
+              <div className="lcd-text-1602">{lcdText.line1}</div>
+              <div className="lcd-text-1602">{lcdText.line2}</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="card-tilt" className={`tile tile-tilt${activeTab !== 'device' ? ' m-hidden' : ''}${hl('card-tilt')}`}>
+          <div className="card-title-bar"><h3>의자 기울기</h3><span className={`card-tag${isTiltOver ? ' danger' : ''}`}>경고 {tiltAlarmAngle}° 이상</span></div>
+          <div className="tilt-value" style={{ color: isTiltOver ? '#dc2626' : '#0f172a' }}>{isConnected ? angle.toFixed(1) : '-'}<span>°</span></div>
+          <div className="tilt-bar-bg">
+            <div className="tilt-bar-fill" style={{ width: `${Math.min(angle / TILT_GAUGE_MAX, 1) * 100}%`, backgroundColor: isTiltOver ? '#ef4444' : '#3b82f6' }}></div>
+            <div className="threshold-marker" style={{ left: `${Math.min(tiltAlarmAngle / TILT_GAUGE_MAX, 1) * 100}%` }}></div>
+          </div>
+          <div className="tilt-scale"><span>0°</span><span>{TILT_GAUGE_MAX}°</span></div>
+        </div>
       </main>
+
 
       {/* ===================== 모달 ===================== */}
       {authModal && (
