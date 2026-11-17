@@ -62,7 +62,7 @@ function scoreItem(query, item) {
   const hay = normalize([item.title, item.desc, ...(item.keywords || [])].join(' '));
   const chars = [...new Set(q)];
   const matched = chars.filter((c) => hay.includes(c)).length;
-  if (matched === 0) return 0;                         // 한 글자도 안 겹치면 제외
+  if (matched === 0) return 0;                        // 한 글자도 안 겹치면 제외
   let score = matched * 3 + chars.filter((c) => title.includes(c)).length * 2;
   if (title === q) score += 100;
   if (title.includes(q)) score += 50;
@@ -530,110 +530,110 @@ function App() {
     <div className="app">
       {/* ===================== 상단: 학교 배너 (로고 · 검색 · 계정) ===================== */}
       <div className="hero">
-      <header className="top-bar">
-        <div className="brand">
-          <span className="brand-logo">⚡</span>
-          <span className="brand-text">
-            <span className="brand-name">BARO Chair</span>
-            <span className="brand-school">수도전기공업고등학교</span>
-          </span>
-        </div>
+        <header className="top-bar">
+          <div className="brand">
+            <span className="brand-logo">⚡</span>
+            <span className="brand-text">
+              <span className="brand-name">BARO Chair</span>
+              <span className="brand-school">수도전기공업고등학교</span>
+            </span>
+          </div>
 
-        <div className="search-box" ref={searchBoxRef}>
-          <span className="search-icon" aria-hidden="true">🔍</span>
-          <input
-            ref={searchInputRef}
-            className="search-input"
-            type="search"
-            enterKeyHint="search"
-            placeholder="기능 검색 (예: 기울기, 점수, 센서)"
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setActiveResult(0); setIsSearchOpen(true); }}
-            onFocus={() => setIsSearchOpen(true)}
-            onKeyDown={handleSearchKeyDown}
-          />
-          {searchQuery && <button className="search-clear" onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }} aria-label="검색어 지우기">✕</button>}
+          <div className="search-box" ref={searchBoxRef}>
+            <span className="search-icon" aria-hidden="true">🔍</span>
+            <input
+              ref={searchInputRef}
+              className="search-input"
+              type="search"
+              enterKeyHint="search"
+              placeholder="기능 검색 (예: 기울기, 점수, 센서)"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setActiveResult(0); setIsSearchOpen(true); }}
+              onFocus={() => setIsSearchOpen(true)}
+              onKeyDown={handleSearchKeyDown}
+            />
+            {searchQuery && <button className="search-clear" onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }} aria-label="검색어 지우기">✕</button>}
 
-          {isSearchOpen && (
-            <div className="search-dropdown">
-              {!searchQuery.trim() ? (
-                <>
-                  <div className="dropdown-section-title">
-                    <span>최근 검색</span>
-                    {recentSearches.length > 0 && <button className="text-btn" onClick={clearRecent}>전체 삭제</button>}
-                  </div>
-                  {recentSearches.length === 0 ? (
-                    <div className="dropdown-empty">최근 검색한 기록이 없어요.</div>
-                  ) : (
-                    <div className="recent-chips">
-                      {recentSearches.map((r) => (
-                        <span key={r} className="recent-chip">
-                          <button onClick={() => { setSearchQuery(r); setActiveResult(0); searchInputRef.current?.focus(); }}>{r}</button>
-                          <button className="chip-x" onClick={() => removeRecent(r)} aria-label={`${r} 삭제`}>✕</button>
-                        </span>
-                      ))}
+            {isSearchOpen && (
+              <div className="search-dropdown">
+                {!searchQuery.trim() ? (
+                  <>
+                    <div className="dropdown-section-title">
+                      <span>최근 검색</span>
+                      {recentSearches.length > 0 && <button className="text-btn" onClick={clearRecent}>전체 삭제</button>}
                     </div>
-                  )}
-                  <div className="dropdown-section-title"><span>즐겨찾기</span></div>
-                  {favoriteItems.length === 0 ? (
-                    <div className="dropdown-empty">검색 결과의 ☆를 누르면 여기에 저장돼요.</div>
-                  ) : (
-                    favoriteItems.map((item) => (
-                      <div key={item.id} className="result-row" onClick={() => selectResult(item)}>
-                        <span className="result-icon">{item.icon}</span>
-                        <div className="result-text"><div className="result-title">{item.title}</div><div className="result-desc">{item.desc}</div></div>
-                        <button className="star-btn on" onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }} aria-label="즐겨찾기 해제">★</button>
+                    {recentSearches.length === 0 ? (
+                      <div className="dropdown-empty">최근 검색한 기록이 없어요.</div>
+                    ) : (
+                      <div className="recent-chips">
+                        {recentSearches.map((r) => (
+                          <span key={r} className="recent-chip">
+                            <button onClick={() => { setSearchQuery(r); setActiveResult(0); searchInputRef.current?.focus(); }}>{r}</button>
+                            <button className="chip-x" onClick={() => removeRecent(r)} aria-label={`${r} 삭제`}>✕</button>
+                          </span>
+                        ))}
                       </div>
-                    ))
-                  )}
-                </>
-              ) : searchResults.length === 0 ? (
-                <div className="dropdown-empty">'{searchQuery}'와(과) 겹치는 기능이 없어요.</div>
-              ) : (
-                <>
-                  <div className="dropdown-section-title"><span>검색 결과 {searchResults.length}개</span><span className="hint">↑↓ 이동 · Enter 선택</span></div>
-                  {searchResults.map((item, idx) => {
-                    const isFav = favorites.includes(item.id);
-                    return (
-                      <div key={item.id} className={`result-row${idx === activeResult ? ' active' : ''}`} onMouseEnter={() => setActiveResult(idx)} onClick={() => selectResult(item)}>
-                        <span className="result-icon">{item.icon}</span>
-                        <div className="result-text">
-                          <div className="result-title"><HighlightText text={item.title} query={searchQuery} /></div>
-                          <div className="result-desc">{item.desc}</div>
+                    )}
+                    <div className="dropdown-section-title"><span>즐겨찾기</span></div>
+                    {favoriteItems.length === 0 ? (
+                      <div className="dropdown-empty">검색 결과의 ☆를 누르면 여기에 저장돼요.</div>
+                    ) : (
+                      favoriteItems.map((item) => (
+                        <div key={item.id} className="result-row" onClick={() => selectResult(item)}>
+                          <span className="result-icon">{item.icon}</span>
+                          <div className="result-text"><div className="result-title">{item.title}</div><div className="result-desc">{item.desc}</div></div>
+                          <button className="star-btn on" onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }} aria-label="즐겨찾기 해제">★</button>
                         </div>
-                        <button className={`star-btn${isFav ? ' on' : ''}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }} aria-label={isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'}>{isFav ? '★' : '☆'}</button>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          )}
-        </div>
+                      ))
+                    )}
+                  </>
+                ) : searchResults.length === 0 ? (
+                  <div className="dropdown-empty">'{searchQuery}'와(과) 겹치는 기능이 없어요.</div>
+                ) : (
+                  <>
+                    <div className="dropdown-section-title"><span>검색 결과 {searchResults.length}개</span><span className="hint">↑↓ 이동 · Enter 선택</span></div>
+                    {searchResults.map((item, idx) => {
+                      const isFav = favorites.includes(item.id);
+                      return (
+                        <div key={item.id} className={`result-row${idx === activeResult ? ' active' : ''}`} onMouseEnter={() => setActiveResult(idx)} onClick={() => selectResult(item)}>
+                          <span className="result-icon">{item.icon}</span>
+                          <div className="result-text">
+                            <div className="result-title"><HighlightText text={item.title} query={searchQuery} /></div>
+                            <div className="result-desc">{item.desc}</div>
+                          </div>
+                          <button className={`star-btn${isFav ? ' on' : ''}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }} aria-label={isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'}>{isFav ? '★' : '☆'}</button>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
-        <div className="account-area" ref={accountRef}>
-          {isLoggedIn ? (
-            <>
-              <button className={`account-btn ${isConnected ? 'online' : 'offline'}`} onClick={() => setAccountMenuOpen((v) => !v)}>
-                <span className="dot">●</span><span className="account-name">{subdomain}</span><span className="caret">▾</span>
-              </button>
-              {accountMenuOpen && (
-                <div className="account-menu">
-                  <div className="account-menu-info">{isConnected ? `연결됨 · ${getDisplayUrl(serverUrl)}` : '연결 대기 중'}</div>
-                  <button onClick={() => { setAccountMenuOpen(false); handleLogout(); }}>🔓 로그아웃</button>
-                  <button className="danger" onClick={() => { setAccountMenuOpen(false); setDeleteError(''); setDeletePin(''); setIsDeleteModalOpen(true); }}>🗑️ 기기 등록 해제</button>
-                </div>
-              )}
-            </>
-          ) : (
-            <button className="account-btn login" onClick={openLoginModal}>로그인</button>
-          )}
-        </div>
-      </header>
+          <div className="account-area" ref={accountRef}>
+            {isLoggedIn ? (
+              <>
+                <button className={`account-btn ${isConnected ? 'online' : 'offline'}`} onClick={() => setAccountMenuOpen((v) => !v)}>
+                  <span className="dot">●</span><span className="account-name">{subdomain}</span><span className="caret">▾</span>
+                </button>
+                {accountMenuOpen && (
+                  <div className="account-menu">
+                    <div className="account-menu-info">{isConnected ? `연결됨 · ${getDisplayUrl(serverUrl)}` : '연결 대기 중'}</div>
+                    <button onClick={() => { setAccountMenuOpen(false); handleLogout(); }}>🔓 로그아웃</button>
+                    <button className="danger" onClick={() => { setAccountMenuOpen(false); setDeleteError(''); setDeletePin(''); setIsDeleteModalOpen(true); }}>🗑️ 기기 등록 해제</button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button className="account-btn login" onClick={openLoginModal}>로그인</button>
+            )}
+          </div>
+        </header>
 
         <div className="hero-copy">
           <span className="hero-eyebrow">⚡ SUDO ELECTRIC TECHNICAL HIGH SCHOOL · YOUNG MEISTER</span>
-          <h1 className="hero-title">세상의 빛이 되자, <b>바른 자세</b>부터</h1>
+          <h1 className="hero-title">AI가 만드는 새로운 착석의 기준, <b>바로체어!</b></h1>
           <div className="hero-tags">
             <span>전기</span><span>전자</span><span>기계</span><span>정보통신</span><span>IoT</span><span>AI</span><span>마이스터</span>
           </div>
@@ -658,56 +658,55 @@ function App() {
         {/* ── 왼쪽: 핵심 숫자 + 알림 + 버튼 ── */}
         <section className="col-left">
           <div className="mini-grid">
-        <div id="sum-score" className={`tile tile-score${alertType ? ' alerting' : ''}${hl('sum-score')}`}>
-          <div className="tile-head">
-            <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>● {isConnected ? '실시간' : '연결 대기'}</span>
-            <span className="date-small">{todayDate}</span>
+            <div id="sum-score" className={`tile tile-score${alertType ? ' alerting' : ''}${hl('sum-score')}`}>
+              <div className="tile-head">
+                <span className={`live-dot ${isConnected ? 'active' : 'inactive'}`}>● {isConnected ? '실시간' : '연결 대기'}</span>
+                <span className="date-small">{todayDate}</span>
+              </div>
+              <div className="score-number" style={{ color: healthScore >= 80 ? '#059669' : healthScore >= 60 ? '#d97706' : isConnected && totalSeconds > 0 ? '#dc2626' : '#94a3b8' }}>
+                {isConnected && totalSeconds > 0 ? healthScore : '-'}<span className="score-unit">점</span>
+              </div>
+              <div className="tile-label">오늘 자세 점수</div>
+            </div>
+
+            <div id="sum-posture" className={`tile tile-mini${hl('sum-posture')}`}>
+              <span className="tile-label">현재 자세</span>
+              <strong className="mini-value" style={{ color: !isConnected ? '#94a3b8' : isSitting ? POSTURE_TYPES[currentPosture]?.color : '#64748b' }}>
+                {!isConnected ? '-' : isSitting ? (POSTURE_TYPES[currentPosture]?.name || '').split(' (')[0].split(' / ')[0] : '빈 의자'}
+              </strong>
+              {isConnected && aiModel && <span className="mini-sub">🤖 AI 판단</span>}
+            </div>
+
+            <div className={`tile tile-mini${isTiltOver ? ' warn' : ''}`}>
+              <span className="tile-label">기울기</span>
+              <strong className="mini-value" style={{ color: isTiltOver ? '#dc2626' : undefined }}>{isConnected ? `${angle.toFixed(1)}°` : '-'}</strong>
+              <span className="mini-sub">경고 {tiltAlarmAngle}° 이상</span>
+            </div>
+
+            <div id="sum-sit" className={`tile tile-mini${hl('sum-sit')}`}>
+              <span className="tile-label">오늘 착석</span>
+              <strong className="mini-value">{formatTime(sitSeconds)}</strong>
+              <span className="mini-sub">자정에 초기화</span>
+            </div>
           </div>
-          <div className="score-number" style={{ color: healthScore >= 80 ? '#059669' : healthScore >= 60 ? '#d97706' : isConnected && totalSeconds > 0 ? '#dc2626' : '#94a3b8' }}>
-            {isConnected && totalSeconds > 0 ? healthScore : '-'}<span className="score-unit">점</span>
+
+          <div id="sum-alerts" className={`tile tile-alert${alertType ? ' alerting' : ''}${hl('sum-alerts')}`}>
+            <div className="alert-chips">
+              <span className={`alert-chip${isBuzzerOn ? ' on buzzer' : ''}`}>🔊<em>부저</em></span>
+              <span className={`alert-chip${isMotorOn ? ' on motor' : ''}`}>📳<em>진동</em></span>
+              <span className={`alert-chip${isLedOn ? ' on led' : ''}`}>💡<em>LED</em></span>
+            </div>
+            <span className="alert-message">{alertMessage}</span>
+            <div id="sum-buzzer" className={`buzzer-count${hl('sum-buzzer')}`} title="오늘 부저가 울린 횟수 (자정에 초기화)">
+              <span className="buzzer-count-label">오늘 부저</span>
+              <strong>{isConnected ? buzzerCount : '-'}<small>회</small></strong>
+            </div>
           </div>
-          <div className="tile-label">오늘 자세 점수</div>
-        </div>
 
-        <div id="sum-posture" className={`tile tile-mini${hl('sum-posture')}`}>
-          <span className="tile-label">현재 자세</span>
-          <strong className="mini-value" style={{ color: !isConnected ? '#94a3b8' : isSitting ? POSTURE_TYPES[currentPosture]?.color : '#64748b' }}>
-            {!isConnected ? '-' : isSitting ? (POSTURE_TYPES[currentPosture]?.name || '').split(' (')[0].split(' / ')[0] : '빈 의자'}
-          </strong>
-          {isConnected && aiModel && <span className="mini-sub">🤖 AI 판단</span>}
-        </div>
-
-        <div className={`tile tile-mini${isTiltOver ? ' warn' : ''}`}>
-          <span className="tile-label">기울기</span>
-          <strong className="mini-value" style={{ color: isTiltOver ? '#dc2626' : undefined }}>{isConnected ? `${angle.toFixed(1)}°` : '-'}</strong>
-          <span className="mini-sub">경고 {tiltAlarmAngle}° 이상</span>
-        </div>
-
-        <div id="sum-sit" className={`tile tile-mini${hl('sum-sit')}`}>
-          <span className="tile-label">오늘 착석</span>
-          <strong className="mini-value">{formatTime(sitSeconds)}</strong>
-          <span className="mini-sub">자정에 초기화</span>
-        </div>
-
+          <div className="tile tile-actions">
+            <button className="action-btn" onClick={handleOpenYearView}>📊 지난 기록</button>
+            <button className="action-btn primary" onClick={openCalibModal}>🎯 바른 자세 설정</button>
           </div>
-        <div id="sum-alerts" className={`tile tile-alert${alertType ? ' alerting' : ''}${hl('sum-alerts')}`}>
-          <div className="alert-chips">
-            <span className={`alert-chip${isBuzzerOn ? ' on buzzer' : ''}`}>🔊<em>부저</em></span>
-            <span className={`alert-chip${isMotorOn ? ' on motor' : ''}`}>📳<em>진동</em></span>
-            <span className={`alert-chip${isLedOn ? ' on led' : ''}`}>💡<em>LED</em></span>
-          </div>
-          <span className="alert-message">{alertMessage}</span>
-          <div id="sum-buzzer" className={`buzzer-count${hl('sum-buzzer')}`} title="오늘 부저가 울린 횟수 (자정에 초기화)">
-            <span className="buzzer-count-label">오늘 부저</span>
-            <strong>{isConnected ? buzzerCount : '-'}<small>회</small></strong>
-          </div>
-        </div>
-
-        <div className="tile tile-actions">
-          <button className="action-btn" onClick={handleOpenYearView}>📊 지난 기록</button>
-          <button className="action-btn primary" onClick={openCalibModal}>🎯 바른 자세 설정</button>
-        </div>
-
         </section>
 
         {/* ── 오른쪽: 탭으로 나눈 상세 화면 ── */}
@@ -719,80 +718,80 @@ function App() {
           </div>
 
           {activeTab === 'statistics' && (
-        <div id="tile-stats" className={`tile tile-panel tile-stats${hl('tile-stats')}`}>
-          <div className="card-title-bar"><h3>오늘의 자세 비율</h3><span className="card-tag">자정 초기화</span></div>
-          <div className="stats-layout">
-            <div className="donut-chart" style={donutChartStyle}>
-              <div className="donut-hole">
-                <span className="donut-center-label">바른 자세</span>
-                <span className="donut-center-value">{totalSeconds > 0 ? `${postureStats.find((p) => p.key === 'good')?.percentage.toFixed(0)}%` : '-'}</span>
+            <div id="tile-stats" className={`tile tile-panel tile-stats${hl('tile-stats')}`}>
+              <div className="card-title-bar"><h3>오늘의 자세 비율</h3><span className="card-tag">자정 초기화</span></div>
+              <div className="stats-layout">
+                <div className="donut-chart" style={donutChartStyle}>
+                  <div className="donut-hole">
+                    <span className="donut-center-label">바른 자세</span>
+                    <span className="donut-center-value">{totalSeconds > 0 ? `${postureStats.find((p) => p.key === 'good')?.percentage.toFixed(0)}%` : '-'}</span>
+                  </div>
+                </div>
+                <div className="compact-list">
+                  {postureStats.map((item) => (
+                    <div key={item.key} id={`stat-${item.key}`} className={`stat-item${hl(`stat-${item.key}`)}`}>
+                      <div className="stat-header">
+                        <div className="stat-name-wrap"><span className="color-dot" style={{ backgroundColor: item.color }}></span><span className="stat-name">{item.name}</span></div>
+                        <div className="stat-values"><span className="stat-ratio">{totalSeconds > 0 ? `${item.percentage.toFixed(0)}%` : '0%'}</span><span className="stat-time-tag">{formatTime(item.seconds)}</span></div>
+                      </div>
+                      <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${item.percentage}%`, backgroundColor: item.color }}></div></div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="compact-list">
-              {postureStats.map((item) => (
-                <div key={item.key} id={`stat-${item.key}`} className={`stat-item${hl(`stat-${item.key}`)}`}>
-                  <div className="stat-header">
-                    <div className="stat-name-wrap"><span className="color-dot" style={{ backgroundColor: item.color }}></span><span className="stat-name">{item.name}</span></div>
-                    <div className="stat-values"><span className="stat-ratio">{totalSeconds > 0 ? `${item.percentage.toFixed(0)}%` : '0%'}</span><span className="stat-time-tag">{formatTime(item.seconds)}</span></div>
-                  </div>
-                  <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${item.percentage}%`, backgroundColor: item.color }}></div></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
           )}
 
           {activeTab === 'heatmap' && (
-        <div id="tile-heatmap" className={`tile tile-panel tile-heatmap${hl('tile-heatmap')}`}>
-          <div className="card-title-bar">
-            <h3>압력 분포</h3>
-            <span className={`status-pill ${isConnected && isSitting ? 'sitting' : 'empty'}`}>{isConnected && isSitting ? '착석 중' : isConnected ? '빈 의자' : '연결 안 됨'}</span>
-          </div>
-          <div className="seat-grid">
-            <span className="seat-edge">▲ 앞</span>
-            {[[6, 7], [3, 4, 5], [0, 1, 2]].map((chs, r) => (
-              <div key={r} className={`seat-row cols-${chs.length}`}>
-                {chs.map((ch) => (
-                  <div key={ch} id={`sensor-node-${ch}`} className={`seat-cell${hl(`sensor-node-${ch}`)}`} title={`${ch + 1}번 ${SENSORS[ch].pos}`}>
-                    <div className="circle-socket"><div className="pressure-circle" style={getCircleStyle(pressures[ch])}></div></div>
-                    <span className="cell-text"><b>{ch + 1}</b> {pressures[ch]}</span>
+            <div id="tile-heatmap" className={`tile tile-panel tile-heatmap${hl('tile-heatmap')}`}>
+              <div className="card-title-bar">
+                <h3>압력 분포</h3>
+                <span className={`status-pill ${isConnected && isSitting ? 'sitting' : 'empty'}`}>{isConnected && isSitting ? '착석 중' : isConnected ? '빈 의자' : '연결 안 됨'}</span>
+              </div>
+              <div className="seat-grid">
+                <span className="seat-edge">▲ 앞</span>
+                {[[6, 7], [3, 4, 5], [0, 1, 2]].map((chs, r) => (
+                  <div key={r} className={`seat-row cols-${chs.length}`}>
+                    {chs.map((ch) => (
+                      <div key={ch} id={`sensor-node-${ch}`} className={`seat-cell${hl(`sensor-node-${ch}`)}`} title={`${ch + 1}번 ${SENSORS[ch].pos}`}>
+                        <div className="circle-socket"><div className="pressure-circle" style={getCircleStyle(pressures[ch])}></div></div>
+                        <span className="cell-text"><b>{ch + 1}</b> {pressures[ch]}</span>
+                      </div>
+                    ))}
                   </div>
                 ))}
+                <span className="seat-edge">▼ 등받이</span>
               </div>
-            ))}
-            <span className="seat-edge">▼ 등받이</span>
-          </div>
-          <div className="heat-footer">
-            <span className="total-title">합계 <strong>{pressureSum}</strong> / 착석 기준 {sitThreshold}</span>
-            <div className="threshold-bar-bg">
-              <div className="threshold-bar-fill" style={{ width: `${Math.min(pressureSum / PRESSURE_MAX_SUM, 1) * 100}%`, backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8' }}></div>
-              <div className="threshold-marker" style={{ left: `${Math.min(sitThreshold / PRESSURE_MAX_SUM, 1) * 100}%` }}></div>
+              <div className="heat-footer">
+                <span className="total-title">합계 <strong>{pressureSum}</strong> / 착석 기준 {sitThreshold}</span>
+                <div className="threshold-bar-bg">
+                  <div className="threshold-bar-fill" style={{ width: `${Math.min(pressureSum / PRESSURE_MAX_SUM, 1) * 100}%`, backgroundColor: isConnected && isSitting ? '#ef4444' : '#94a3b8' }}></div>
+                  <div className="threshold-marker" style={{ left: `${Math.min(sitThreshold / PRESSURE_MAX_SUM, 1) * 100}%` }}></div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
           )}
 
           {activeTab === 'device' && (
             <div className="tile-panel device-grid">
-        <div id="card-lcd" className={`tile tile-lcd${hl('card-lcd')}`}>
-          <div className="card-title-bar"><h3>LCD 미리보기</h3><span className="card-tag">1602 LCD</span></div>
-          <div className="lcd-screen-frame">
-            <div className="lcd-bezel-1602">
-              <div className="lcd-text-1602">{lcdText.line1}</div>
-              <div className="lcd-text-1602">{lcdText.line2}</div>
-            </div>
-          </div>
-        </div>
-        <div id="card-tilt" className={`tile tile-tilt${hl('card-tilt')}`}>
-          <div className="card-title-bar"><h3>의자 기울기</h3><span className={`card-tag${isTiltOver ? ' danger' : ''}`}>경고 {tiltAlarmAngle}° 이상</span></div>
-          <div className="tilt-value" style={{ color: isTiltOver ? '#dc2626' : '#0f172a' }}>{isConnected ? angle.toFixed(1) : '-'}<span>°</span></div>
-          <div className="tilt-bar-bg">
-            <div className="tilt-bar-fill" style={{ width: `${Math.min(angle / TILT_GAUGE_MAX, 1) * 100}%`, backgroundColor: isTiltOver ? '#ef4444' : '#3b82f6' }}></div>
-            <div className="threshold-marker" style={{ left: `${Math.min(tiltAlarmAngle / TILT_GAUGE_MAX, 1) * 100}%` }}></div>
-          </div>
-          <div className="tilt-scale"><span>0°</span><span>{TILT_GAUGE_MAX}°</span></div>
-        </div>
+              <div id="card-lcd" className={`tile tile-lcd${hl('card-lcd')}`}>
+                <div className="card-title-bar"><h3>LCD 미리보기</h3><span className="card-tag">1602 LCD</span></div>
+                <div className="lcd-screen-frame">
+                  <div className="lcd-bezel-1602">
+                    <div className="lcd-text-1602">{lcdText.line1}</div>
+                    <div className="lcd-text-1602">{lcdText.line2}</div>
+                  </div>
+                </div>
+              </div>
+              <div id="card-tilt" className={`tile tile-tilt${hl('card-tilt')}`}>
+                <div className="card-title-bar"><h3>의자 기울기</h3><span className={`card-tag${isTiltOver ? ' danger' : ''}`}>경고 {tiltAlarmAngle}° 이상</span></div>
+                <div className="tilt-value" style={{ color: isTiltOver ? '#dc2626' : '#0f172a' }}>{isConnected ? angle.toFixed(1) : '-'}<span>°</span></div>
+                <div className="tilt-bar-bg">
+                  <div className="tilt-bar-fill" style={{ width: `${Math.min(angle / TILT_GAUGE_MAX, 1) * 100}%`, backgroundColor: isTiltOver ? '#ef4444' : '#3b82f6' }}></div>
+                  <div className="threshold-marker" style={{ left: `${Math.min(tiltAlarmAngle / TILT_GAUGE_MAX, 1) * 100}%` }}></div>
+                </div>
+                <div className="tilt-scale"><span>0°</span><span>{TILT_GAUGE_MAX}°</span></div>
+              </div>
             </div>
           )}
         </section>
