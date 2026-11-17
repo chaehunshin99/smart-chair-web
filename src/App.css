@@ -1015,8 +1015,8 @@ body {
   width: 42px; height: 42px; border-radius: 12px; background: #ffffff;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 14px rgba(0, 10, 70, 0.35);
+  font-size: 22px; color: var(--sudo-deep);
 }
-.brand-logo { font-size: 22px; color: var(--sudo-deep); }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
 .hero .brand-name { color: #ffffff; font-size: 18px; letter-spacing: 0.2px; }
 .brand-school { font-size: 11px; font-weight: 600; color: var(--sudo-light); margin-top: 2px; }
@@ -1091,8 +1091,8 @@ body {
 /* ---------- LCD: 가로 화면에서 검은 테두리가 커지던 문제 수정 ---------- */
 .tile-lcd { justify-content: flex-start; }
 .tile-lcd .lcd-screen-frame {
-  flex: none;                 /* 카드 높이만큼 늘어나지 않게 */
-  margin: auto 0;             /* 카드 가운데에 놓이게 */
+  flex: none;                /* 카드 높이만큼 늘어나지 않게 */
+  margin: auto 0;            /* 카드 가운데에 놓이게 */
   align-self: center;
   width: 100%;
   max-width: 380px;
@@ -1126,8 +1126,7 @@ body {
   .app { padding: 0 0 20px; }
   .app > .favorite-bar, .app > .bento, .app > .school-footer { margin-left: 12px; margin-right: 12px; }
   .hero { padding: 8px 12px 38px; }
-  .brand-logo { width: 36px; height: 36px; border-radius: 10px; }
-  .brand-logo { font-size: 19px; }
+  .brand-logo { width: 36px; height: 36px; border-radius: 10px; font-size: 19px; }
   .hero .brand-name { font-size: 16px; }
   .hero-eyebrow { font-size: 9px; letter-spacing: 0.6px; }
   .hero-title { font-size: 19px; margin: 4px 0 8px; }
